@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Admin Console</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <!-- INTRO SCREEN -->
+    <div id="intro-screen">
+        <div class="intro-scanlines"></div>
+        <div class="intro-noise"></div>
+
+        <!-- Stage 1: INTENSE HACKING CHAOS -->
+        <div id="intro-hacking" class="intro-stage">
+            <!-- Matrix rain background -->
+            <canvas id="matrix-canvas"></canvas>
+
+            <!-- Crack overlay -->
+            <div class="crack-overlay">
+                <div class="crack c1"></div>
+                <div class="crack c2"></div>
+                <div class="crack c3"></div>
+                <div class="crack c4"></div>
+                <div class="crack c5"></div>
+            </div>
+
+            <!-- Floating text areas -->
+            <div class="float-text t1"></div>
+            <div class="float-text t2"></div>
+            <div class="float-text t3"></div>
+            <div class="float-text t4"></div>
+            <div class="float-text t5"></div>
+            <div class="float-text t6"></div>
+
+            <!-- Error popup container -->
+            <div id="popup-container"></div>
+
+            <!-- Large warning flashes -->
+            <div class="big-warning"></div>
+
+            <!-- Glitch slices -->
+            <div class="glitch-slice s1"></div>
+            <div class="glitch-slice s2"></div>
+            <div class="glitch-slice s3"></div>
+        </div>
+
+        <!-- Stage 2: Fast Eyes Flash -->
+        <div id="intro-eyes" class="intro-stage hidden">
+            <div class="eye left">✕</div>
+            <div class="eye right">✕</div>
+        </div>
+
+        <!-- Stage 3: Hello World + Digital Matrix Fly-Through -->
+        <div id="intro-hello" class="intro-stage hidden">
+            <h1 class="hello-title"></h1>
+            <div class="digit-matrix"></div>
+        </div>
+    </div>
+
+    <!-- VIEW TRANSITION OVERLAY -->
+    <div id="view-transition" class="hidden">
+        <div class="transition-scanline"></div>
+        <div class="transition-code"></div>
+    </div>
+
+    <!-- LANDING PAGE -->
+    <section id="landing-page" class="hidden">
+        <header class="landing-header">
+
+            <div class="logo">
+                <div class="logo-icon">B</div>
+                <span class="logo-text">BotConsole</span>
+            </div>
+            <button id="btn-login" class="btn btn-primary">Sign In</button>
+        </header>
+        <main class="landing-hero">
+            <div class="hero-badge"><span>✨</span> Admin Dashboard v2.0</div>
+            <h1 class="hero-title">Control Your Bot With Precision</h1>
+            <p class="hero-subtitle">A powerful admin console for managing your Discord/Telegram bot. Monitor,
+                moderate,
+                and configure in real-time.</p>
+            <div class="hero-actions">
+                <button id="btn-access" class="btn btn-primary">Access Console</button>
+                <button class="btn btn-secondary">Learn More</button>
+            </div>
+        </main>
+    </section>
+
+    <!-- APP LAYOUT -->
+    <div id="app-layout" class="hidden">
+        <header class="app-header">
+            <div class="header-left">
+                <button id="btn-menu" class="btn btn-ghost btn-icon">☰</button>
+                <div class="logo">
+                    <div class="logo-icon">B</div><span class="logo-text">BotConsole</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="btn-settings" class="btn btn-ghost btn-icon" title="Settings">⚙</button>
+                <div id="user-menu" class="user-menu">
+                    <div class="user-avatar">U</div>
+                    <span class="user-name">Operator</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-container">
+            <aside id="sidebar" class="sidebar">
+                <div class="sidebar-section">
+                    <div class="sidebar-title">Main</div>
+                    <button class="nav-item active" data-view="dashboard"><span class="nav-icon">▣</span>
+                        Dashboard</button>
+                    <button class="nav-item" data-view="moderation"><span class="nav-icon">👥</span>
+                        Moderation</button>
+                    <button class="nav-item" data-view="logs"><span class="nav-icon">📋</span> Logs</button>
+                </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-title">Support</div>
+                    <button class="nav-item" data-view="help"><span class="nav-icon">❓</span> Help Center</button>
+                </div>
+            </aside>
+
+            <main class="content-area">
+                <!-- Dashboard -->
+                <section id="view-dashboard" class="app-view">
+                    <div class="view-header">
+                        <h1 class="view-title">Dashboard</h1>
+                        <p class="view-subtitle">Monitor bot performance</p>
+                    </div>
+                    <div class="dashboard-grid">
+                        <div class="card stat-card">
+                            <div class="card-title">Total Users</div>
+                            <div class="stat-value">1,234</div>
+                            <div class="stat-change positive">↑ 12%</div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="card-title">Active Servers</div>
+                            <div class="stat-value">56</div>
+                            <div class="stat-change positive">↑ 3</div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="card-title">Commands Today</div>
+                            <div class="stat-value">847</div>
+                            <div class="stat-change negative">↓ 5%</div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="card-title">Uptime</div>
+                            <div class="stat-value">99.9%</div>
+                        </div>
+                        <div class="card" style="grid-column:span 2;">
+                            <div class="card-title">Bot Settings</div>
+                            <div class="settings-list">
+                                <div class="setting-row">
+                                    <div>
+                                        <div class="setting-label">Auto Moderation</div>
+                                    </div><label class="toggle"><input type="checkbox" checked><span
+                                            class="toggle-slider"></span></label>
+                                </div>
+                                <div class="setting-row">
+                                    <div>
+                                        <div class="setting-label">Activity Logging</div>
+                                    </div><label class="toggle"><input type="checkbox" checked><span
+                                            class="toggle-slider"></span></label>
+                                </div>
+                                <div class="setting-row">
+                                    <div>
+                                        <div class="setting-label">Welcome Messages</div>
+                                    </div><label class="toggle"><input type="checkbox"><span
+                                            class="toggle-slider"></span></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Moderation -->
+                <section id="view-moderation" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">Moderation</h1>
+                        <p class="view-subtitle">Manage users</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">User Management</div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Role</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>AdminKay</td>
+                                        <td><span class="badge badge-warning">Admin</span></td>
+                                        <td><span class="status-dot online"></span>Online</td>
+                                        <td><button class="btn btn-ghost">Edit</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td>ModUser</td>
+                                        <td><span class="badge badge-success">Mod</span></td>
+                                        <td><span class="status-dot busy"></span>Busy</td>
+                                        <td><button class="btn btn-ghost">Edit</button></td>
+                                    </tr>
+                                    <tr>
+                                        <td>User99</td>
+                                        <td><span class="badge badge-neutral">Member</span></td>
+                                        <td><span class="status-dot offline"></span>Offline</td>
+                                        <td><button class="btn btn-ghost" style="color:var(--color-error)">Ban</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Logs -->
+                <section id="view-logs" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">Activity Logs</h1>
+                        <p class="view-subtitle">Track activities</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Recent Activity</div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Event</th>
+                                        <th>User</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="logs-tbody">
+                                    <tr>
+                                        <td class="text-mono text-muted">12:45:32</td>
+                                        <td><span class="badge badge-success">Command</span></td>
+                                        <td>AdminKay</td>
+                                        <td>/help</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-mono text-muted">12:44:18</td>
+                                        <td><span class="badge badge-warning">Mod</span></td>
+                                        <td>ModUser</td>
+                                        <td>Muted User99</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-mono text-muted">12:43:05</td>
+                                        <td><span class="badge badge-neutral">Join</span></td>
+                                        <td>NewUser</td>
+                                        <td>Joined server</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Help -->
+                <section id="view-help" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">Help Center</h1>
+                        <p class="view-subtitle">Learn the console</p>
+                    </div>
+                    <div class="help-grid">
+                        <div class="card help-card">
+                            <div class="help-icon">📊</div>
+                            <h3>Dashboard</h3>
+                            <p>Monitor performance</p>
+                        </div>
+                        <div class="card help-card">
+                            <div class="help-icon">🛡️</div>
+                            <h3>Moderation</h3>
+                            <p>Manage users</p>
+                        </div>
+                        <div class="card help-card">
+                            <div class="help-icon">📋</div>
+                            <h3>Logs</h3>
+                            <p>Track activities</p>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="modal-settings" class="modal-overlay hidden">
+        <div class="modal-card">
+            <button class="modal-close btn btn-ghost">×</button>
+            <h2 class="modal-title">Settings</h2>
+            <div class="settings-list">
+                <div class="setting-row">
+                    <div class="setting-label">Sound Effects</div><label class="toggle"><input type="checkbox"
+                            id="toggle-sound"><span class="toggle-slider"></span></label>
+                </div>
+            </div>
+            <button id="btn-logout" class="btn btn-secondary" style="width:100%;margin-top:20px;">Log Out</button>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="modal-profile" class="modal-overlay hidden">
+        <div class="modal-card" style="text-align:center;">
+            <button class="modal-close btn btn-ghost">×</button>
+            <div class="user-avatar" style="width:80px;height:80px;font-size:2rem;margin:0 auto 16px;">U</div>
+            <h2>Operator</h2>
+            <p class="text-accent">Administrator</p>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
