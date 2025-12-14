@@ -123,8 +123,17 @@
                     <button class="nav-item" data-view="logs"><span class="nav-icon">📋</span> Logs</button>
                 </div>
                 <div class="sidebar-section">
+                    <div class="sidebar-title">Развлечение</div>
+                    <button class="nav-item" data-view="memes"><span class="nav-icon">🎭</span> Мемы</button>
+                    <button class="nav-item" data-view="meme-of-day"><span class="nav-icon">⭐</span> Мем дня</button>
+                    <button class="nav-item" data-view="tetris"><span class="nav-icon">🎮</span> Tetris</button>
+                </div>
+                <div class="sidebar-section">
                     <div class="sidebar-title">Support</div>
-                    <button class="nav-item" data-view="help"><span class="nav-icon">❓</span> Help Center</button>
+                    <button class="nav-item" data-view="help-faq"><span class="nav-icon">❓</span> FAQ</button>
+                    <button class="nav-item" data-view="help-commands"><span class="nav-icon">⌨️</span>
+                        Commands</button>
+                    <button class="nav-item" data-view="help-about"><span class="nav-icon">ℹ️</span> About</button>
                 </div>
             </aside>
 
@@ -292,6 +301,336 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- Memes Feed -->
+                <section id="view-memes" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">🎭 Мемы</h1>
+                        <p class="view-subtitle">Лента мемов в реальном времени</p>
+                    </div>
+
+                    <!-- Upload Form -->
+                    <div class="card meme-upload-card">
+                        <div class="card-title">Загрузить мем</div>
+                        <form id="meme-upload-form" class="meme-upload-form">
+                            <div class="upload-preview-container">
+                                <div id="upload-preview" class="upload-preview">
+                                    <span class="upload-placeholder">📷 Нажми для выбора картинки</span>
+                                </div>
+                                <input type="file" id="meme-file-input"
+                                    accept="image/jpeg,image/png,image/gif,image/webp" hidden>
+                            </div>
+                            <input type="text" id="meme-caption" class="meme-caption-input"
+                                placeholder="Добавь подпись (опционально)" maxlength="200">
+                            <button type="submit" id="meme-submit-btn" class="btn btn-primary" disabled>
+                                <span class="btn-text">Опубликовать</span>
+                                <span class="btn-loader hidden">⏳</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Sort Toggle -->
+                    <div class="meme-sort-controls">
+                        <button class="sort-btn active" data-sort="new">🕐 Новые</button>
+                        <button class="sort-btn" data-sort="popular">🔥 Популярные</button>
+                    </div>
+
+                    <!-- Meme Feed -->
+                    <div id="meme-feed" class="meme-feed">
+                        <div class="meme-feed-empty">
+                            <div class="empty-icon">🎭</div>
+                            <p>Пока нет мемов. Будь первым!</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Meme of the Day -->
+                <section id="view-meme-of-day" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">⭐ Мем дня</h1>
+                        <p class="view-subtitle">Мем с наибольшим количеством лайков</p>
+                    </div>
+
+                    <!-- Hero Meme -->
+                    <div id="meme-of-day-hero" class="meme-of-day-hero">
+                        <div class="meme-hero-empty">
+                            <div class="empty-icon">🏆</div>
+                            <p>Пока нет мема дня</p>
+                            <span class="empty-hint">Загрузи первый мем и собери лайки!</span>
+                        </div>
+                    </div>
+
+                    <!-- Top 5 -->
+                    <div class="card top-memes-card">
+                        <div class="card-title">🔥 Топ-5 мемов</div>
+                        <div id="top-memes-list" class="top-memes-list">
+                            <div class="top-memes-empty">Недостаточно мемов для рейтинга</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tetris Game -->
+                <section id="view-tetris" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">🎮 Tetris</h1>
+                        <p class="view-subtitle">Классическая игра</p>
+                    </div>
+
+                    <div class="tetris-container">
+                        <div class="tetris-game-area">
+                            <!-- Game Field -->
+                            <div class="tetris-field-wrapper">
+                                <canvas id="tetris-canvas" width="300" height="600"></canvas>
+                                <div id="tetris-overlay" class="tetris-overlay hidden">
+                                    <div class="overlay-content">
+                                        <div id="overlay-title" class="overlay-title">TETRIS</div>
+                                        <div id="overlay-message" class="overlay-message">Нажми Start</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Side Panel -->
+                            <div class="tetris-side-panel">
+                                <!-- Next Piece -->
+                                <div class="tetris-panel-block">
+                                    <div class="panel-label">NEXT</div>
+                                    <canvas id="tetris-next" width="120" height="120"></canvas>
+                                </div>
+
+                                <!-- Stats -->
+                                <div class="tetris-panel-block">
+                                    <div class="panel-label">SCORE</div>
+                                    <div id="tetris-score" class="panel-value">0</div>
+                                </div>
+                                <div class="tetris-panel-block">
+                                    <div class="panel-label">LEVEL</div>
+                                    <div id="tetris-level" class="panel-value">1</div>
+                                </div>
+                                <div class="tetris-panel-block">
+                                    <div class="panel-label">LINES</div>
+                                    <div id="tetris-lines" class="panel-value">0</div>
+                                </div>
+
+                                <!-- Controls -->
+                                <div class="tetris-buttons">
+                                    <button id="tetris-start" class="btn btn-primary tetris-btn">▶ Start</button>
+                                    <button id="tetris-pause" class="btn btn-secondary tetris-btn" disabled>⏸
+                                        Pause</button>
+                                    <button id="tetris-restart" class="btn btn-ghost tetris-btn">🔄 Restart</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Controls -->
+                        <div class="tetris-mobile-controls">
+                            <div class="mobile-row">
+                                <button class="mobile-btn" data-action="rotateLeft">↺</button>
+                                <button class="mobile-btn" data-action="hardDrop">⬇</button>
+                                <button class="mobile-btn" data-action="rotateRight">↻</button>
+                            </div>
+                            <div class="mobile-row">
+                                <button class="mobile-btn" data-action="left">◀</button>
+                                <button class="mobile-btn" data-action="down">▼</button>
+                                <button class="mobile-btn" data-action="right">▶</button>
+                            </div>
+                        </div>
+
+                        <!-- Difficulty Selector -->
+                        <div class="tetris-difficulty">
+                            <div class="difficulty-label">Сложность:</div>
+                            <div class="difficulty-buttons">
+                                <button class="difficulty-btn" data-difficulty="easy">🌱 Лёгкий</button>
+                                <button class="difficulty-btn active" data-difficulty="normal">🎮 Нормальный</button>
+                                <button class="difficulty-btn" data-difficulty="hard">🔥 Сложный</button>
+                                <button class="difficulty-btn" data-difficulty="extreme">💀 Экстрим</button>
+                            </div>
+                        </div>
+
+                        <!-- Instructions -->
+                        <div class="tetris-instructions">
+                            <div class="instructions-title">📖 Управление</div>
+                            <div class="instructions-grid">
+                                <div class="key-group">
+                                    <div class="key-item"><kbd>←</kbd><kbd>→</kbd> <span>Движение</span></div>
+                                    <div class="key-item"><kbd>↓</kbd> <span>Ускорение</span></div>
+                                    <div class="key-item"><kbd>Space</kbd> <span>Hard Drop</span></div>
+                                </div>
+                                <div class="key-group">
+                                    <div class="key-item"><kbd>↑</kbd><kbd>X</kbd> <span>Поворот →</span></div>
+                                    <div class="key-item"><kbd>Z</kbd> <span>Поворот ←</span></div>
+                                    <div class="key-item"><kbd>P</kbd><kbd>Esc</kbd> <span>Пауза</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Help: FAQ -->
+                <section id="view-help-faq" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">❓ FAQ</h1>
+                        <p class="view-subtitle">Часто задаваемые вопросы</p>
+                    </div>
+
+                    <div class="help-container">
+                        <div class="faq-list">
+                            <details class="faq-item" open>
+                                <summary class="faq-question">Как добавить бота на сервер?</summary>
+                                <div class="faq-answer">
+                                    <p>Перейдите в раздел Dashboard и нажмите "Invite Bot". Вы будете перенаправлены на
+                                        страницу Discord где сможете выбрать сервер для добавления бота.</p>
+                                </div>
+                            </details>
+
+                            <details class="faq-item">
+                                <summary class="faq-question">Как изменить префикс команд?</summary>
+                                <div class="faq-answer">
+                                    <p>Откройте Dashboard → Bot Settings → Command Prefix. Введите новый префикс и
+                                        нажмите "Save Changes".</p>
+                                </div>
+                            </details>
+
+                            <details class="faq-item">
+                                <summary class="faq-question">Почему бот не отвечает на команды?</summary>
+                                <div class="faq-answer">
+                                    <p>Проверьте следующее:</p>
+                                    <ul>
+                                        <li>Бот онлайн (зелёный индикатор в Dashboard)</li>
+                                        <li>У бота есть права на чтение/отправку сообщений</li>
+                                        <li>Вы используете правильный префикс</li>
+                                        <li>Канал не в списке исключений</li>
+                                    </ul>
+                                </div>
+                            </details>
+
+                            <details class="faq-item">
+                                <summary class="faq-question">Как посмотреть логи действий?</summary>
+                                <div class="faq-answer">
+                                    <p>Перейдите в раздел Logs в боковом меню. Там доступны логи сообщений и действий
+                                        модерации.</p>
+                                </div>
+                            </details>
+
+                            <details class="faq-item">
+                                <summary class="faq-question">Можно ли добавить бота на несколько серверов?</summary>
+                                <div class="faq-answer">
+                                    <p>Да! Бот может работать на нескольких серверах одновременно. Используйте "Server
+                                        Folders" для организации серверов по группам.</p>
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Help: Commands -->
+                <section id="view-help-commands" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">⌨️ Commands</h1>
+                        <p class="view-subtitle">Справочник команд бота</p>
+                    </div>
+
+                    <div class="help-container">
+                        <div class="commands-section">
+                            <h3 class="commands-category">🛡️ Модерация</h3>
+                            <div class="commands-grid">
+                                <div class="command-card">
+                                    <code class="command-name">!ban @user [reason]</code>
+                                    <p class="command-desc">Забанить пользователя</p>
+                                </div>
+                                <div class="command-card">
+                                    <code class="command-name">!kick @user [reason]</code>
+                                    <p class="command-desc">Кикнуть пользователя</p>
+                                </div>
+                                <div class="command-card">
+                                    <code class="command-name">!mute @user [time]</code>
+                                    <p class="command-desc">Замутить пользователя</p>
+                                </div>
+                                <div class="command-card">
+                                    <code class="command-name">!clear [count]</code>
+                                    <p class="command-desc">Удалить сообщения</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="commands-section">
+                            <h3 class="commands-category">ℹ️ Информация</h3>
+                            <div class="commands-grid">
+                                <div class="command-card">
+                                    <code class="command-name">!help</code>
+                                    <p class="command-desc">Показать список команд</p>
+                                </div>
+                                <div class="command-card">
+                                    <code class="command-name">!ping</code>
+                                    <p class="command-desc">Проверить задержку бота</p>
+                                </div>
+                                <div class="command-card">
+                                    <code class="command-name">!stats</code>
+                                    <p class="command-desc">Статистика сервера</p>
+                                </div>
+                                <div class="command-card">
+                                    <code class="command-name">!userinfo @user</code>
+                                    <p class="command-desc">Информация о пользователе</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="commands-section">
+                            <h3 class="commands-category">🎮 Развлечения</h3>
+                            <div class="commands-grid">
+                                <div class="command-card">
+                                    <code class="command-name">!meme</code>
+                                    <p class="command-desc">Случайный мем</p>
+                                </div>
+                                <div class="command-card">
+                                    <code class="command-name">!roll [max]</code>
+                                    <p class="command-desc">Бросить кубик</p>
+                                </div>
+                                <div class="command-card">
+                                    <code class="command-name">!8ball [question]</code>
+                                    <p class="command-desc">Магический шар</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Help: About -->
+                <section id="view-help-about" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">ℹ️ About</h1>
+                        <p class="view-subtitle">О проекте</p>
+                    </div>
+
+                    <div class="help-container">
+                        <div class="about-card">
+                            <div class="about-logo">🤖</div>
+                            <h2 class="about-title">Diskord Bot Console</h2>
+                            <p class="about-version">Version 1.0.0</p>
+
+                            <div class="about-description">
+                                <p>Это веб-консоль для управления Discord ботом. Позволяет настраивать бота,
+                                    просматривать логи, управлять серверами и модерацией.</p>
+                            </div>
+
+                            <div class="about-features">
+                                <h3>Возможности:</h3>
+                                <ul>
+                                    <li>📊 Dashboard с статистикой</li>
+                                    <li>📁 Организация серверов по папкам</li>
+                                    <li>📜 Просмотр логов в реальном времени</li>
+                                    <li>🛡️ Модерация и управление</li>
+                                    <li>🎮 Развлечения: Мемы, Tetris</li>
+                                </ul>
+                            </div>
+
+                            <div class="about-links">
+                                <a href="https://github.com/Barin5550/Diskord-bot" class="about-link" target="_blank">
+                                    📂 GitHub Repository
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </main>
         </div>
     </div>
@@ -322,6 +661,7 @@
     </div>
 
     <script src="app.js"></script>
+    <script src="tetris.js"></script>
 </body>
 
 </html>

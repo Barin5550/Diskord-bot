@@ -2796,3 +2796,1008 @@ tr:hover td {
         opacity: 1;
     }
 }
+
+/* ===========================
+   MEME FEED STYLES
+   =========================== */
+
+/* Upload Card */
+.meme-upload-card {
+    margin-bottom: var(--space-5);
+}
+
+.meme-upload-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.upload-preview-container {
+    position: relative;
+}
+
+.upload-preview {
+    width: 100%;
+    min-height: 200px;
+    max-height: 400px;
+    background: var(--color-bg);
+    border: 2px dashed var(--color-border);
+    border-radius: var(--border-radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    overflow: hidden;
+}
+
+.upload-preview:hover {
+    border-color: var(--color-accent);
+    background: var(--color-accent-dim);
+}
+
+.upload-preview.has-image {
+    border-style: solid;
+    border-color: var(--color-accent);
+}
+
+.upload-preview img {
+    max-width: 100%;
+    max-height: 400px;
+    object-fit: contain;
+}
+
+.upload-placeholder {
+    color: var(--color-text-muted);
+    font-size: 1rem;
+}
+
+.meme-caption-input {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-3) var(--space-4);
+    color: var(--color-text);
+    font-size: 0.875rem;
+}
+
+.meme-caption-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px var(--color-accent-dim);
+}
+
+#meme-submit-btn {
+    width: 100%;
+}
+
+#meme-submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-loader {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Sort Controls */
+.meme-sort-controls {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-5);
+}
+
+.sort-btn {
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.sort-btn:hover {
+    border-color: var(--color-accent);
+    color: var(--color-text);
+}
+
+.sort-btn.active {
+    background: var(--color-accent-dim);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+/* Meme Feed */
+.meme-feed {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.meme-feed-empty,
+.meme-hero-empty,
+.top-memes-empty {
+    text-align: center;
+    padding: var(--space-10);
+    color: var(--color-text-muted);
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: var(--space-4);
+    opacity: 0.5;
+}
+
+.empty-hint {
+    display: block;
+    margin-top: var(--space-2);
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+/* Individual Meme Item */
+.meme-item {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    animation: fadeIn 0.3s ease;
+}
+
+.meme-item:hover {
+    border-color: var(--color-accent-dim);
+}
+
+.meme-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.meme-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--color-accent), #ff9800);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+}
+
+.meme-author {
+    font-size: 0.875rem;
+    color: var(--color-text);
+}
+
+.meme-time {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-left: auto;
+}
+
+.meme-image-container {
+    background: var(--color-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-height: 500px;
+    overflow: hidden;
+}
+
+.meme-image {
+    max-width: 100%;
+    max-height: 500px;
+    object-fit: contain;
+}
+
+.meme-caption {
+    padding: var(--space-3) var(--space-4);
+    font-size: 0.875rem;
+    color: var(--color-text);
+    border-top: 1px solid var(--color-border);
+}
+
+.meme-actions {
+    display: flex;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--color-border);
+}
+
+.vote-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.vote-btn:hover {
+    border-color: var(--color-accent);
+    color: var(--color-text);
+}
+
+.vote-btn.like.active {
+    background: rgba(74, 222, 128, 0.15);
+    border-color: var(--color-success);
+    color: var(--color-success);
+}
+
+.vote-btn.dislike.active {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: var(--color-error);
+    color: var(--color-error);
+}
+
+.vote-count {
+    font-weight: 600;
+    min-width: 20px;
+    text-align: center;
+}
+
+/* Delete Button */
+.delete-btn {
+    margin-left: auto;
+    padding: var(--space-2) var(--space-3);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    color: var(--color-text-muted);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.delete-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: var(--color-error);
+    color: var(--color-error);
+}
+
+/* Meme of the Day Hero */
+.meme-of-day-hero {
+    background: var(--color-bg-card);
+    border: 2px solid var(--color-accent);
+    border-radius: var(--border-radius);
+    margin-bottom: var(--space-5);
+    overflow: hidden;
+    box-shadow: 0 0 30px var(--color-accent-dim);
+}
+
+.meme-hero-empty {
+    padding: var(--space-12);
+}
+
+.meme-hero-content {
+    position: relative;
+}
+
+.meme-hero-badge {
+    position: absolute;
+    top: var(--space-4);
+    left: var(--space-4);
+    background: var(--color-accent);
+    color: #000;
+    padding: var(--space-2) var(--space-4);
+    border-radius: 100px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.meme-hero-image-container {
+    background: var(--color-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-height: 600px;
+    overflow: hidden;
+}
+
+.meme-hero-image {
+    max-width: 100%;
+    max-height: 600px;
+    object-fit: contain;
+}
+
+.meme-hero-info {
+    padding: var(--space-5);
+    background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.8));
+}
+
+.meme-hero-caption {
+    font-size: 1.125rem;
+    color: var(--color-text);
+    margin-bottom: var(--space-3);
+}
+
+.meme-hero-stats {
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+}
+
+.meme-hero-stat {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.meme-hero-stat.likes {
+    color: var(--color-success);
+}
+
+.meme-hero-stat.dislikes {
+    color: var(--color-error);
+}
+
+/* Top Memes List */
+.top-memes-card {
+    margin-top: var(--space-5);
+}
+
+.top-memes-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.top-memes-empty {
+    padding: var(--space-6);
+}
+
+.top-meme-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-3);
+    background: var(--color-bg);
+    border-radius: var(--border-radius);
+    transition: all var(--transition-fast);
+}
+
+.top-meme-item:hover {
+    background: var(--color-accent-dim);
+}
+
+.top-meme-rank {
+    width: 32px;
+    height: 32px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--color-accent);
+}
+
+.top-meme-rank.gold {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    border: none;
+    color: #000;
+}
+
+.top-meme-rank.silver {
+    background: linear-gradient(135deg, #C0C0C0, #A9A9A9);
+    border: none;
+    color: #000;
+}
+
+.top-meme-rank.bronze {
+    background: linear-gradient(135deg, #CD7F32, #8B4513);
+    border: none;
+    color: #fff;
+}
+
+.top-meme-thumb {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--border-radius);
+    object-fit: cover;
+    border: 1px solid var(--color-border);
+}
+
+.top-meme-info {
+    flex: 1;
+}
+
+.top-meme-caption {
+    font-size: 0.875rem;
+    color: var(--color-text);
+    margin-bottom: var(--space-1);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+}
+
+.top-meme-stats {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.top-meme-likes {
+    color: var(--color-success);
+    font-weight: 600;
+}
+
+/* Meme Feed Responsive */
+@media (max-width: 600px) {
+    .meme-sort-controls {
+        flex-wrap: wrap;
+    }
+
+    .sort-btn {
+        flex: 1;
+        text-align: center;
+    }
+
+    .meme-hero-badge {
+        font-size: 0.75rem;
+        padding: var(--space-1) var(--space-3);
+    }
+
+    .top-meme-caption {
+        max-width: 120px;
+    }
+}
+
+/* ================================
+   TETRIS GAME STYLES
+   ================================ */
+
+.tetris-container {
+    max-width: 550px;
+    margin: 0 auto;
+}
+
+.tetris-game-area {
+    display: flex;
+    gap: var(--space-4);
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.tetris-field-wrapper {
+    position: relative;
+    background: #0a0a0a;
+    border: 3px solid var(--color-primary);
+    border-radius: var(--border-radius);
+    box-shadow: 0 0 30px rgba(255, 217, 0, 0.2);
+}
+
+#tetris-canvas {
+    display: block;
+}
+
+.tetris-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius);
+}
+
+.overlay-content {
+    text-align: center;
+}
+
+.overlay-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    text-shadow: 0 0 20px var(--color-primary);
+    margin-bottom: var(--space-2);
+}
+
+.overlay-message {
+    font-size: 1rem;
+    color: var(--color-text-muted);
+}
+
+/* Side Panel */
+.tetris-side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-width: 140px;
+}
+
+.tetris-panel-block {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-3);
+    text-align: center;
+}
+
+.panel-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: var(--space-2);
+}
+
+.panel-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    font-family: 'Courier New', monospace;
+}
+
+#tetris-next {
+    display: block;
+    background: #0a0a0a;
+    border-radius: var(--border-radius-sm);
+}
+
+.tetris-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.tetris-btn {
+    width: 100%;
+    font-size: 0.875rem;
+    padding: var(--space-2) var(--space-3);
+}
+
+/* Mobile Controls */
+.tetris-mobile-controls {
+    display: none;
+    margin-top: var(--space-4);
+    gap: var(--space-2);
+    flex-direction: column;
+    align-items: center;
+}
+
+.mobile-row {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.mobile-btn {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+    background: var(--color-bg-card);
+    border: 2px solid var(--color-border);
+    border-radius: var(--border-radius);
+    color: var(--color-text);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-btn:active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-bg);
+    transform: scale(0.95);
+}
+
+/* Help */
+.tetris-help {
+    margin-top: var(--space-4);
+    text-align: center;
+}
+
+.tetris-help summary {
+    cursor: pointer;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+}
+
+.tetris-help .help-content {
+    margin-top: var(--space-2);
+    padding: var(--space-3);
+    background: var(--color-bg-card);
+    border-radius: var(--border-radius);
+    text-align: left;
+    display: inline-block;
+}
+
+.tetris-help .help-content p {
+    margin: var(--space-1) 0;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    font-family: monospace;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .tetris-game-area {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .tetris-field-wrapper {
+        order: 1;
+    }
+
+    #tetris-canvas {
+        width: 250px;
+        height: 500px;
+    }
+
+    .tetris-side-panel {
+        order: 0;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        min-width: auto;
+        width: 100%;
+    }
+
+    .tetris-panel-block {
+        flex: 1;
+        min-width: 80px;
+    }
+
+    .tetris-buttons {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        width: 100%;
+    }
+
+    .tetris-btn {
+        flex: 1;
+        min-width: 80px;
+    }
+
+    .tetris-mobile-controls {
+        display: flex;
+        order: 2;
+    }
+}
+
+/* Difficulty Selector */
+.tetris-difficulty {
+    margin-top: var(--space-4);
+    text-align: center;
+}
+
+.difficulty-label {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.difficulty-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    justify-content: center;
+}
+
+.difficulty-btn {
+    padding: var(--space-2) var(--space-3);
+    background: var(--color-bg-card);
+    border: 2px solid var(--color-border);
+    border-radius: var(--border-radius);
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.difficulty-btn:hover {
+    border-color: var(--color-text-muted);
+    color: var(--color-text);
+}
+
+.difficulty-btn.active {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: rgba(255, 217, 0, 0.1);
+}
+
+.difficulty-btn[data-difficulty="easy"].active {
+    border-color: #76ff03;
+    color: #76ff03;
+    background: rgba(118, 255, 3, 0.1);
+}
+
+.difficulty-btn[data-difficulty="hard"].active {
+    border-color: #ff9100;
+    color: #ff9100;
+    background: rgba(255, 145, 0, 0.1);
+}
+
+.difficulty-btn[data-difficulty="extreme"].active {
+    border-color: #ff5252;
+    color: #ff5252;
+    background: rgba(255, 82, 82, 0.1);
+}
+
+/* Instructions */
+.tetris-instructions {
+    margin-top: var(--space-4);
+    padding: var(--space-4);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+}
+
+.instructions-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: var(--space-3);
+    text-align: center;
+}
+
+.instructions-grid {
+    display: flex;
+    gap: var(--space-4);
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.key-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.key-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.key-item kbd {
+    display: inline-block;
+    padding: var(--space-1) var(--space-2);
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    color: var(--color-primary);
+    box-shadow: 0 2px 0 var(--color-border);
+    min-width: 24px;
+    text-align: center;
+}
+
+.key-item span {
+    color: var(--color-text);
+}
+
+/* ================================
+   HELP PAGES STYLES
+   ================================ */
+
+.help-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* FAQ Styles */
+.faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.faq-item {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.faq-question {
+    padding: var(--space-4);
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--color-text);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.faq-question::before {
+    content: '▶';
+    font-size: 0.7rem;
+    color: var(--color-primary);
+    transition: transform var(--transition-fast);
+}
+
+.faq-item[open] .faq-question::before {
+    transform: rotate(90deg);
+}
+
+.faq-question::-webkit-details-marker {
+    display: none;
+}
+
+.faq-answer {
+    padding: 0 var(--space-4) var(--space-4);
+    color: var(--color-text-muted);
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--space-3);
+}
+
+.faq-answer ul {
+    margin-top: var(--space-2);
+    padding-left: var(--space-4);
+}
+
+.faq-answer li {
+    margin: var(--space-1) 0;
+}
+
+/* Commands Styles */
+.commands-section {
+    margin-bottom: var(--space-5);
+}
+
+.commands-category {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: var(--space-3);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.commands-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--space-3);
+}
+
+.command-card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-3);
+    transition: all var(--transition-fast);
+}
+
+.command-card:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-2px);
+}
+
+.command-name {
+    display: block;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    color: var(--color-primary);
+    background: var(--color-bg);
+    padding: var(--space-2);
+    border-radius: var(--border-radius-sm);
+    margin-bottom: var(--space-2);
+}
+
+.command-desc {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
+/* About Styles */
+.about-card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-lg);
+    padding: var(--space-6);
+    text-align: center;
+}
+
+.about-logo {
+    font-size: 4rem;
+    margin-bottom: var(--space-3);
+}
+
+.about-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: var(--space-2);
+}
+
+.about-version {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-4);
+}
+
+.about-description {
+    max-width: 500px;
+    margin: 0 auto var(--space-4);
+    color: var(--color-text-muted);
+}
+
+.about-features {
+    text-align: left;
+    max-width: 400px;
+    margin: 0 auto var(--space-4);
+    padding: var(--space-4);
+    background: var(--color-bg);
+    border-radius: var(--border-radius);
+}
+
+.about-features h3 {
+    font-size: 0.9rem;
+    color: var(--color-text);
+    margin-bottom: var(--space-2);
+}
+
+.about-features ul {
+    list-style: none;
+    padding: 0;
+}
+
+.about-features li {
+    padding: var(--space-2) 0;
+    color: var(--color-text-muted);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.about-features li:last-child {
+    border-bottom: none;
+}
+
+.about-links {
+    margin-top: var(--space-4);
+}
+
+.about-link {
+    display: inline-block;
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-primary);
+    color: var(--color-bg);
+    text-decoration: none;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    transition: all var(--transition-fast);
+}
+
+.about-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 217, 0, 0.3);
+}
