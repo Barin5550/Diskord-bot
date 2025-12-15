@@ -5928,3 +5928,382 @@ tr:hover td {
     background: rgba(255, 107, 107, 0.1);
     border-radius: var(--border-radius);
 }
+
+/* ===========================
+   TRON / HACKER ANIMATIONS
+   =========================== */
+
+/* Neon Glow Variables */
+:root {
+    --neon-cyan: #00fff5;
+    --neon-blue: #007fff;
+    --neon-glow-sm: 0 0 5px var(--color-accent), 0 0 10px var(--color-accent-dim);
+    --neon-glow-md: 0 0 10px var(--color-accent), 0 0 20px var(--color-accent-dim), 0 0 30px var(--color-accent-glow);
+    --neon-glow-lg: 0 0 15px var(--color-accent), 0 0 30px var(--color-accent-dim), 0 0 45px var(--color-accent-glow);
+}
+
+/* Pulse Glow Animation */
+@keyframes pulseGlow {
+
+    0%,
+    100% {
+        box-shadow: var(--neon-glow-sm);
+    }
+
+    50% {
+        box-shadow: var(--neon-glow-md);
+    }
+}
+
+@keyframes neonFlicker {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    92% {
+        opacity: 1;
+    }
+
+    93% {
+        opacity: 0.8;
+    }
+
+    94% {
+        opacity: 1;
+    }
+
+    96% {
+        opacity: 0.9;
+    }
+
+    97% {
+        opacity: 1;
+    }
+}
+
+/* Scanline Effect */
+@keyframes scanline {
+    0% {
+        transform: translateY(-100%);
+    }
+
+    100% {
+        transform: translateY(100vh);
+    }
+}
+
+/* Glitch Text Effect */
+@keyframes glitchText {
+
+    0%,
+    100% {
+        transform: translate(0);
+        filter: none;
+    }
+
+    20% {
+        transform: translate(-2px, 1px);
+        filter: hue-rotate(90deg);
+    }
+
+    40% {
+        transform: translate(2px, -1px);
+        filter: hue-rotate(-90deg);
+    }
+
+    60% {
+        transform: translate(-1px, 2px);
+    }
+
+    80% {
+        transform: translate(1px, -2px);
+        filter: hue-rotate(45deg);
+    }
+}
+
+/* Border Light Animation */
+@keyframes borderLight {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Enhanced Button Glow on Hover */
+.btn-primary:hover {
+    animation: pulseGlow 1.5s ease-in-out infinite;
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+    box-shadow: var(--neon-glow-lg);
+}
+
+/* Nav Item Hover Effects */
+.nav-item {
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 3px;
+    background: var(--color-accent);
+    transform: scaleY(0);
+    transition: transform var(--transition-fast);
+    box-shadow: 0 0 10px var(--color-accent);
+}
+
+.nav-item:hover::before,
+.nav-item.active::before {
+    transform: scaleY(1);
+}
+
+.nav-item:hover {
+    text-shadow: 0 0 8px var(--color-accent-dim);
+}
+
+/* Card Hover - Neon Border */
+.card {
+    transition: all var(--transition-normal);
+    position: relative;
+}
+
+.card::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: var(--border-radius);
+    background: linear-gradient(90deg, transparent, var(--color-accent-dim), transparent);
+    background-size: 200% 100%;
+    opacity: 0;
+    z-index: -1;
+    transition: opacity var(--transition-normal);
+}
+
+.card:hover::after {
+    opacity: 1;
+    animation: borderLight 2s linear infinite;
+}
+
+/* Stat Card Number Animation */
+.stat-value {
+    transition: all var(--transition-fast);
+}
+
+.stat-card:hover .stat-value {
+    text-shadow: 0 0 15px var(--color-accent-glow);
+    transform: scale(1.02);
+}
+
+/* Logo Glow */
+.logo-icon {
+    transition: all var(--transition-normal);
+}
+
+.logo-icon:hover {
+    box-shadow: var(--neon-glow-md);
+    animation: neonFlicker 3s infinite;
+}
+
+/* Badge Pulse */
+.hero-badge {
+    animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* Table Row Hover */
+table tbody tr {
+    transition: all var(--transition-fast);
+}
+
+table tbody tr:hover {
+    background: var(--color-accent-dim);
+    box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+/* Input Focus Glow */
+input:focus,
+textarea:focus,
+select:focus {
+    box-shadow: 0 0 0 3px var(--color-accent-dim), var(--neon-glow-sm);
+}
+
+/* Toggle Switch Glow */
+.toggle input:checked+.toggle-slider {
+    box-shadow: 0 0 10px var(--color-accent);
+}
+
+/* Status Dot Pulse */
+.status-dot.online {
+    animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* View Header Glitch on Page Load */
+.view-header {
+    animation: glitchText 0.3s ease-out;
+}
+
+/* Sidebar Section Title */
+.sidebar-title {
+    position: relative;
+    overflow: hidden;
+}
+
+.sidebar-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 40px;
+    height: 1px;
+    background: linear-gradient(90deg, var(--color-accent), transparent);
+}
+
+/* Modal Entrance */
+.modal-content {
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Toast Entrance with Glow */
+.toast {
+    animation: toastEnter 0.3s ease-out;
+}
+
+@keyframes toastEnter {
+    from {
+        opacity: 0;
+        transform: translateX(100%) scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+/* Page Transition Scanline */
+#view-transition.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: var(--color-accent);
+    box-shadow: var(--neon-glow-md);
+    animation: scanline 0.5s linear;
+}
+
+/* Cyber Grid Background for Landing */
+#landing-page::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        linear-gradient(var(--color-border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--color-border) 1px, transparent 1px);
+    background-size: 50px 50px;
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+/* Glitch-in Animation for App Layout */
+.glitch-in {
+    animation: glitchIn 0.5s ease-out;
+}
+
+@keyframes glitchIn {
+    0% {
+        opacity: 0;
+        filter: blur(10px) hue-rotate(90deg);
+        transform: scale(1.02);
+    }
+
+    50% {
+        opacity: 1;
+        filter: blur(2px) hue-rotate(0deg);
+    }
+
+    100% {
+        opacity: 1;
+        filter: none;
+        transform: scale(1);
+    }
+}
+
+/* Typing Cursor */
+.typing::after {
+    content: '▌';
+    animation: blink 0.8s infinite;
+    color: var(--color-accent);
+}
+
+@keyframes blink {
+
+    0%,
+    50% {
+        opacity: 1;
+    }
+
+    51%,
+    100% {
+        opacity: 0;
+    }
+}
+
+/* Smooth Page Transitions */
+.app-view {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Reduced Motion Preference */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
