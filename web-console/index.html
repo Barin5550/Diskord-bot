@@ -148,6 +148,8 @@
                 <div id="user-menu" class="user-menu">
                     <div class="user-avatar">U</div>
                     <span class="user-name">Operator</span>
+                    <button id="btn-logout" class="btn btn-ghost" title="Выйти"
+                        style="margin-left: 8px; font-size: 0.9rem;">🚪</button>
                 </div>
             </div>
         </header>
@@ -170,11 +172,14 @@
                         Folders</button>
                 </div>
                 <div class="sidebar-section">
-                    <div class="sidebar-title">Развлечение</div>
+                    <div class="sidebar-title">🎮 Игры</div>
+                    <button class="nav-item" data-view="tetris"><span class="nav-icon">🧱</span> Tetris</button>
+                    <button class="nav-item" data-view="snake"><span class="nav-icon">🐍</span> Snake</button>
+                </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-title">😂 Мемы & Чаты</div>
                     <button class="nav-item" data-view="memes"><span class="nav-icon">🎭</span> Мемы</button>
                     <button class="nav-item" data-view="meme-of-day"><span class="nav-icon">⭐</span> Мем дня</button>
-                    <button class="nav-item" data-view="tetris"><span class="nav-icon">🎮</span> Tetris</button>
-                    <button class="nav-item" data-view="snake"><span class="nav-icon">🐍</span> Snake</button>
                 </div>
                 <div class="sidebar-section">
                     <div class="sidebar-title">Творчество</div>
@@ -191,6 +196,7 @@
                     <button class="nav-item" data-view="help-commands"><span class="nav-icon">⌨️</span>
                         Commands</button>
                     <button class="nav-item" data-view="help-about"><span class="nav-icon">ℹ️</span> About</button>
+                    <button class="nav-item" data-view="profile"><span class="nav-icon">👤</span> Профиль</button>
                 </div>
             </aside>
 
@@ -279,43 +285,47 @@
                 <!-- Moderation -->
                 <section id="view-moderation" class="app-view hidden">
                     <div class="view-header">
-                        <h1 class="view-title">Moderation</h1>
-                        <p class="view-subtitle">Manage users</p>
+                        <h1 class="view-title">🛡️ Модерация</h1>
+                        <p class="view-subtitle">Управление администраторами</p>
                     </div>
+
+                    <!-- Add Admin Form -->
                     <div class="card">
-                        <div class="card-title">User Management</div>
+                        <div class="card-title">Добавить администратора</div>
+                        <div class="admin-form">
+                            <input type="text" id="admin-user-id" class="input-field" placeholder="User ID"
+                                style="width: 150px;">
+                            <input type="text" id="admin-username" class="input-field" placeholder="Username"
+                                style="width: 150px;">
+                            <select id="admin-role" class="input-field" style="width: 120px;">
+                                <option value="admin">Admin</option>
+                                <option value="moderator">Moderator</option>
+                                <option value="helper">Helper</option>
+                            </select>
+                            <button id="btn-add-admin" class="btn btn-primary">Добавить</button>
+                        </div>
+                    </div>
+
+                    <!-- Admins List -->
+                    <div class="card">
+                        <div class="card-title">
+                            Список администраторов
+                            <span id="admins-count" class="badge badge-neutral" style="margin-left: 8px;">0</span>
+                        </div>
                         <div class="table-container">
-                            <table>
+                            <table id="admins-table">
                                 <thead>
                                     <tr>
-                                        <th>User</th>
-                                        <th>Role</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
+                                        <th>User ID</th>
+                                        <th>Username</th>
+                                        <th>Роль</th>
+                                        <th>Добавлен</th>
+                                        <th>Действия</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="admins-tbody">
                                     <tr>
-                                        <td>AdminKay</td>
-                                        <td><span class="badge badge-warning">Admin</span></td>
-                                        <td><span class="status-dot online"></span>Online</td>
-                                        <td><button class="btn btn-ghost coming-soon" title="Coming soon">Edit</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>ModUser</td>
-                                        <td><span class="badge badge-success">Mod</span></td>
-                                        <td><span class="status-dot busy"></span>Busy</td>
-                                        <td><button class="btn btn-ghost coming-soon" title="Coming soon">Edit</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>User99</td>
-                                        <td><span class="badge badge-neutral">Member</span></td>
-                                        <td><span class="status-dot offline"></span>Offline</td>
-                                        <td><button class="btn btn-ghost coming-soon" style="color:var(--color-error)"
-                                                title="Coming soon">Ban</button>
-                                        </td>
+                                        <td colspan="5" class="no-data">Загрузка...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -392,6 +402,46 @@
                             <button id="logs-actions-more" class="btn btn-secondary" style="display:none">Загрузить
                                 ещё</button>
                         </div>
+                    </div>
+                </section>
+
+                <!-- Server Folders -->
+                <section id="view-folders" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">🗂️ Server Folders</h1>
+                        <p class="view-subtitle">Организуйте серверы по папкам</p>
+                    </div>
+
+                    <!-- Create Folder Form -->
+                    <div class="card">
+                        <div class="card-title">Создать папку</div>
+                        <div class="folder-form">
+                            <input type="text" id="folder-name" class="input-field" placeholder="Название папки"
+                                style="width: 200px;">
+                            <input type="color" id="folder-color" class="input-color" value="#00d9ff"
+                                title="Цвет папки">
+                            <button id="btn-create-folder" class="btn btn-primary">Создать</button>
+                        </div>
+                    </div>
+
+                    <!-- Add Server to Folder -->
+                    <div class="card">
+                        <div class="card-title">Добавить сервер в папку</div>
+                        <div class="folder-form">
+                            <select id="target-folder" class="input-field" style="width: 180px;">
+                                <option value="">Выберите папку</option>
+                            </select>
+                            <input type="text" id="server-id" class="input-field" placeholder="Server ID"
+                                style="width: 150px;">
+                            <input type="text" id="server-name" class="input-field" placeholder="Название сервера"
+                                style="width: 180px;">
+                            <button id="btn-add-server" class="btn btn-secondary">Добавить</button>
+                        </div>
+                    </div>
+
+                    <!-- Folders List -->
+                    <div id="folders-container" class="folders-container">
+                        <div class="no-data">Загрузка папок...</div>
                     </div>
                 </section>
 
@@ -1483,6 +1533,207 @@
                             <button onclick="showView('constructor')" class="btn btn-primary">
                                 🚀 Перейти к Конструктору
                             </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Help FAQ -->
+                <section id="view-help-faq" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">❓ FAQ</h1>
+                        <p class="view-subtitle">Часто задаваемые вопросы</p>
+                    </div>
+                    <div class="help-content">
+                        <div class="faq-item card">
+                            <h3>🤖 Как подключить бота к серверу?</h3>
+                            <p>Перейдите по invite-ссылке бота и выберите сервер для подключения. Бот автоматически
+                                запросит необходимые права.</p>
+                        </div>
+                        <div class="faq-item card">
+                            <h3>⚙️ Как изменить prefix команд?</h3>
+                            <p>Откройте Dashboard → Bot Settings → Command Prefix. Изменения сохраняются автоматически.
+                            </p>
+                        </div>
+                        <div class="faq-item card">
+                            <h3>📊 Где посмотреть статистику?</h3>
+                            <p>Раздел Analytics показывает графики активности, сообщений и топ пользователей вашего
+                                сервера.</p>
+                        </div>
+                        <div class="faq-item card">
+                            <h3>🎮 Как играть в мини-игры?</h3>
+                            <p>Выберите Tetris или Snake в меню "Развлечение". Управление: стрелки, пробел, ESC для
+                                паузы.</p>
+                        </div>
+                        <div class="faq-item card">
+                            <h3>🔧 Как использовать 3D Конструктор?</h3>
+                            <p>Maya-like интерфейс: Q/W/E/R для выбора инструмента (Select/Move/Rotate/Scale).
+                                Добавляйте примитивы из панели справа.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Help Commands -->
+                <section id="view-help-commands" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">⌨️ Commands</h1>
+                        <p class="view-subtitle">Список доступных команд бота</p>
+                    </div>
+                    <div class="help-content">
+                        <div class="commands-section card">
+                            <h3>📌 Основные команды</h3>
+                            <table class="commands-table">
+                                <tbody>
+                                    <tr>
+                                        <td><code>!help</code></td>
+                                        <td>Показать список команд</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>!ping</code></td>
+                                        <td>Проверить связь с ботом</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>!info</code></td>
+                                        <td>Информация о сервере</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>!stats</code></td>
+                                        <td>Статистика пользователя</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="commands-section card">
+                            <h3>🛡️ Модерация</h3>
+                            <table class="commands-table">
+                                <tbody>
+                                    <tr>
+                                        <td><code>!warn @user</code></td>
+                                        <td>Выдать предупреждение</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>!mute @user</code></td>
+                                        <td>Заглушить пользователя</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>!kick @user</code></td>
+                                        <td>Выгнать пользователя</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>!ban @user</code></td>
+                                        <td>Забанить пользователя</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="commands-section card">
+                            <h3>🎭 Развлечения</h3>
+                            <table class="commands-table">
+                                <tbody>
+                                    <tr>
+                                        <td><code>!meme</code></td>
+                                        <td>Случайный мем</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>!joke</code></td>
+                                        <td>Случайная шутка</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>!8ball вопрос</code></td>
+                                        <td>Магический шар</td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>!roll</code></td>
+                                        <td>Бросить кости</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Help About -->
+                <section id="view-help-about" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">ℹ️ About</h1>
+                        <p class="view-subtitle">О проекте BotConsole</p>
+                    </div>
+                    <div class="help-content">
+                        <div class="about-card card">
+                            <div class="about-logo">🤖</div>
+                            <h2>BotConsole v2.0</h2>
+                            <p class="about-tagline">Мощная админ-консоль для Discord/Telegram бота</p>
+                        </div>
+                        <div class="about-features card">
+                            <h3>✨ Возможности</h3>
+                            <ul>
+                                <li>📊 Аналитика и статистика сервера</li>
+                                <li>🛡️ Модерация пользователей</li>
+                                <li>💬 Логирование сообщений и действий</li>
+                                <li>🎮 Мини-игры: Tetris, Snake</li>
+                                <li>🔧 3D Конструктор с Maya-style интерфейсом</li>
+                                <li>🎭 Галерея мемов</li>
+                            </ul>
+                        </div>
+                        <div class="about-tech card">
+                            <h3>🛠️ Технологии</h3>
+                            <div class="tech-badges">
+                                <span class="tech-badge">Node.js</span>
+                                <span class="tech-badge">Express</span>
+                                <span class="tech-badge">WebSocket</span>
+                                <span class="tech-badge">Three.js</span>
+                                <span class="tech-badge">SQLite</span>
+                            </div>
+                        </div>
+                        <div class="about-credits card">
+                            <h3>💛 Credits</h3>
+                            <p>Made with love by BotConsole Team</p>
+                            <p class="version">Version 2.0.0 • 2024</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Profile -->
+                <section id="view-profile" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">👤 Профиль</h1>
+                        <p class="view-subtitle">Настройки вашего профиля</p>
+                    </div>
+
+                    <div class="profile-container">
+                        <!-- Profile Card -->
+                        <div class="card profile-card">
+                            <div class="profile-avatar-section">
+                                <div id="profile-avatar" class="profile-avatar">U</div>
+                                <div class="profile-avatar-actions">
+                                    <button id="btn-change-avatar" class="btn btn-ghost coming-soon"
+                                        title="Coming soon">Сменить аватар</button>
+                                </div>
+                            </div>
+                            <div class="profile-info">
+                                <div class="form-group">
+                                    <label>Имя</label>
+                                    <input type="text" id="profile-name" class="input-field" placeholder="Ваше имя">
+                                </div>
+                                <div class="form-group">
+                                    <label>О себе</label>
+                                    <textarea id="profile-bio" class="input-field" rows="3"
+                                        placeholder="Расскажите о себе..."></textarea>
+                                </div>
+                                <button id="btn-save-profile" class="btn btn-primary">Сохранить</button>
+                                <span id="profile-save-status" class="save-status"></span>
+                            </div>
+                        </div>
+
+                        <!-- Discord Connection -->
+                        <div class="card discord-card">
+                            <div class="card-title">🔗 Discord подключение</div>
+                            <div id="discord-status" class="discord-status">
+                                <div class="discord-not-connected">
+                                    <p>Discord не подключён</p>
+                                    <button id="btn-connect-discord" class="btn btn-primary">🎮 Подключить
+                                        Discord</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>

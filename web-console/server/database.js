@@ -114,6 +114,51 @@ async function initDatabase() {
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
+
+        CREATE TABLE IF NOT EXISTS admins (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            username TEXT NOT NULL,
+            role TEXT DEFAULT 'admin',
+            bot_id INTEGER DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, bot_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS server_folders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            color TEXT DEFAULT '#00d9ff',
+            owner_id TEXT NOT NULL,
+            position INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS server_folder_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            folder_id INTEGER NOT NULL,
+            server_id TEXT NOT NULL,
+            server_name TEXT NOT NULL,
+            server_icon TEXT,
+            position INTEGER DEFAULT 0,
+            added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (folder_id) REFERENCES server_folders(id) ON DELETE CASCADE,
+            UNIQUE(folder_id, server_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS profiles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL UNIQUE,
+            name TEXT DEFAULT 'User',
+            bio TEXT DEFAULT '',
+            avatar TEXT,
+            discord_id TEXT,
+            discord_name TEXT,
+            discord_avatar TEXT,
+            discord_connected_at DATETIME,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
     `);
 
     // Create indexes
@@ -482,5 +527,177 @@ const botsDB = {
     }
 };
 
-module.exports = { initDatabase, memeDB, foldersDB, logsDB, botsDB };
+// Admins database functions
+const adminsDB = {
+    getAdmins(botId = 1) {
+        return queryAll(`SELECT * FROM admins WHERE bot_id = ? ORDER BY created_at DESC`, [botId]);
+    },
+
+    getAdminById(adminId) {
+        return queryOne(`SELECT * FROM admins WHERE id = ?`, [adminId]);
+    },
+
+    addAdmin(userId, username, role = 'admin', botId = 1) {
+        try {
+            const result = execute(
+                `INSERT INTO admins (user_id, username, role, bot_id) VALUES (?, ?, ?, ?)`,
+                [userId, username, role, botId]
+            );
+            return { success: true, id: result.lastInsertRowid };
+        } catch (error) {
+            if (error.message && error.message.includes('UNIQUE constraint')) {
+                return { success: false, error: 'Admin already exists' };
+            }
+            throw error;
+        }
+    },
+
+    removeAdmin(adminId) {
+        const admin = this.getAdminById(adminId);
+        if (!admin) {
+            return { success: false, error: 'Admin not found' };
+        }
+        const result = execute(`DELETE FROM admins WHERE id = ?`, [adminId]);
+        return { success: result.changes > 0, admin };
+    },
+
+    isAdmin(userId, botId = 1) {
+        const admin = queryOne(`SELECT * FROM admins WHERE user_id = ? AND bot_id = ?`, [userId, botId]);
+        return !!admin;
+    }
+};
+
+// Server Folders database functions
+const serverFoldersDB = {
+    getFolders(ownerId) {
+        const folders = queryAll(`SELECT * FROM server_folders WHERE owner_id = ? ORDER BY position, id`, [ownerId]);
+        // Get items for each folder
+        return folders.map(folder => ({
+            ...folder,
+            servers: this.getServersInFolder(folder.id)
+        }));
+    },
+
+    getFolder(folderId) {
+        return queryOne(`SELECT * FROM server_folders WHERE id = ?`, [folderId]);
+    },
+
+    createFolder(name, ownerId, color = '#00d9ff') {
+        const maxPos = queryOne(`SELECT MAX(position) as max FROM server_folders WHERE owner_id = ?`, [ownerId]);
+        const position = (maxPos?.max || 0) + 1;
+        const result = execute(
+            `INSERT INTO server_folders (name, owner_id, color, position) VALUES (?, ?, ?, ?)`,
+            [name, ownerId, color, position]
+        );
+        return { success: true, id: result.lastInsertRowid };
+    },
+
+    updateFolder(folderId, updates) {
+        const setClauses = [];
+        const params = [];
+
+        if (updates.name !== undefined) { setClauses.push('name = ?'); params.push(updates.name); }
+        if (updates.color !== undefined) { setClauses.push('color = ?'); params.push(updates.color); }
+        if (updates.position !== undefined) { setClauses.push('position = ?'); params.push(updates.position); }
+
+        if (setClauses.length === 0) return null;
+        params.push(folderId);
+
+        execute(`UPDATE server_folders SET ${setClauses.join(', ')} WHERE id = ?`, params);
+        return this.getFolder(folderId);
+    },
+
+    deleteFolder(folderId) {
+        const folder = this.getFolder(folderId);
+        if (!folder) return { success: false, error: 'Folder not found' };
+
+        execute(`DELETE FROM server_folder_items WHERE folder_id = ?`, [folderId]);
+        execute(`DELETE FROM server_folders WHERE id = ?`, [folderId]);
+        return { success: true, folder };
+    },
+
+    getServersInFolder(folderId) {
+        return queryAll(`SELECT * FROM server_folder_items WHERE folder_id = ? ORDER BY position, id`, [folderId]);
+    },
+
+    addServerToFolder(folderId, serverId, serverName, serverIcon = null) {
+        try {
+            const maxPos = queryOne(`SELECT MAX(position) as max FROM server_folder_items WHERE folder_id = ?`, [folderId]);
+            const position = (maxPos?.max || 0) + 1;
+            const result = execute(
+                `INSERT INTO server_folder_items (folder_id, server_id, server_name, server_icon, position) VALUES (?, ?, ?, ?, ?)`,
+                [folderId, serverId, serverName, serverIcon, position]
+            );
+            return { success: true, id: result.lastInsertRowid };
+        } catch (error) {
+            if (error.message && error.message.includes('UNIQUE constraint')) {
+                return { success: false, error: 'Server already in folder' };
+            }
+            throw error;
+        }
+    },
+
+    removeServerFromFolder(folderId, serverId) {
+        const result = execute(`DELETE FROM server_folder_items WHERE folder_id = ? AND server_id = ?`, [folderId, serverId]);
+        return { success: result.changes > 0 };
+    },
+
+    moveServer(itemId, newFolderId, newPosition) {
+        execute(`UPDATE server_folder_items SET folder_id = ?, position = ? WHERE id = ?`, [newFolderId, newPosition, itemId]);
+        return { success: true };
+    }
+};
+
+// Profiles database functions
+const profilesDB = {
+    getProfile(userId) {
+        return queryOne(`SELECT * FROM profiles WHERE user_id = ?`, [userId]);
+    },
+
+    getOrCreateProfile(userId) {
+        let profile = this.getProfile(userId);
+        if (!profile) {
+            execute(`INSERT INTO profiles (user_id) VALUES (?)`, [userId]);
+            profile = this.getProfile(userId);
+        }
+        return profile;
+    },
+
+    updateProfile(userId, updates) {
+        const profile = this.getOrCreateProfile(userId);
+        const setClauses = [];
+        const params = [];
+
+        if (updates.name !== undefined) { setClauses.push('name = ?'); params.push(updates.name); }
+        if (updates.bio !== undefined) { setClauses.push('bio = ?'); params.push(updates.bio); }
+        if (updates.avatar !== undefined) { setClauses.push('avatar = ?'); params.push(updates.avatar); }
+
+        if (setClauses.length === 0) return profile;
+
+        setClauses.push('updated_at = CURRENT_TIMESTAMP');
+        params.push(userId);
+
+        execute(`UPDATE profiles SET ${setClauses.join(', ')} WHERE user_id = ?`, params);
+        return this.getProfile(userId);
+    },
+
+    connectDiscord(userId, discordId, discordName, discordAvatar) {
+        this.getOrCreateProfile(userId);
+        execute(
+            `UPDATE profiles SET discord_id = ?, discord_name = ?, discord_avatar = ?, discord_connected_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`,
+            [discordId, discordName, discordAvatar, userId]
+        );
+        return this.getProfile(userId);
+    },
+
+    disconnectDiscord(userId) {
+        execute(
+            `UPDATE profiles SET discord_id = NULL, discord_name = NULL, discord_avatar = NULL, discord_connected_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`,
+            [userId]
+        );
+        return this.getProfile(userId);
+    }
+};
+
+module.exports = { initDatabase, memeDB, foldersDB, logsDB, botsDB, adminsDB, serverFoldersDB, profilesDB };
 

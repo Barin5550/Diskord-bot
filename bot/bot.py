@@ -205,6 +205,74 @@ async def handle_folder_server_remove(request):
     await db.commit()
     return json_response({'status': 'removed'})
 
+# --- ANALYTICS ROUTES ---
+@routes.get('/api/analytics/messages')
+async def handle_analytics_messages(request):
+    """Get message count by day for the last 30 days"""
+    async with db.execute("""
+        SELECT DATE(timestamp) as date, COUNT(*) as count 
+        FROM saved_msg 
+        WHERE timestamp >= datetime('now', '-30 days')
+        GROUP BY DATE(timestamp)
+        ORDER BY date ASC
+    """) as cursor:
+        rows = await cursor.fetchall()
+        data = [{'date': r['date'], 'count': r['count']} for r in rows]
+        return json_response(data)
+
+@routes.get('/api/analytics/users')
+async def handle_analytics_users(request):
+    """Get top active users"""
+    limit = int(request.query.get('limit', 10))
+    async with db.execute("""
+        SELECT username, user_id, COUNT(*) as message_count
+        FROM saved_msg
+        GROUP BY user_id
+        ORDER BY message_count DESC
+        LIMIT ?
+    """, (limit,)) as cursor:
+        rows = await cursor.fetchall()
+        users = [{
+            'username': r['username'],
+            'user_id': str(r['user_id']),
+            'message_count': r['message_count']
+        } for r in rows]
+        return json_response(users)
+
+@routes.get('/api/analytics/servers')
+async def handle_analytics_servers(request):
+    """Get server statistics"""
+    servers = []
+    for guild in bot.guilds:
+        servers.append({
+            'id': str(guild.id),
+            'name': guild.name,
+            'member_count': guild.member_count,
+            'channel_count': len(guild.channels),
+            'role_count': len(guild.roles),
+            'created_at': guild.created_at.isoformat() if guild.created_at else None,
+            'icon': str(guild.icon.url) if guild.icon else None
+        })
+    return json_response(servers)
+
+@routes.get('/api/analytics/activity')
+async def handle_analytics_activity(request):
+    """Get hourly activity distribution"""
+    async with db.execute("""
+        SELECT strftime('%H', timestamp) as hour, COUNT(*) as count
+        FROM saved_msg
+        WHERE timestamp >= datetime('now', '-7 days')
+        GROUP BY hour
+        ORDER BY hour ASC
+    """) as cursor:
+        rows = await cursor.fetchall()
+        # Fill in missing hours with 0
+        activity = {str(i).zfill(2): 0 for i in range(24)}
+        for r in rows:
+            if r['hour']:
+                activity[r['hour']] = r['count']
+        return json_response([{'hour': h, 'count': c} for h, c in activity.items()])
+
 # --- LOG ROUTES ---
 @routes.get('/api/logs/messages')
 async def handle_logs_messages(request):

@@ -1,7 +1,10 @@
 /**
  * Meme Server - Express.js + WebSocket
  * Handles meme uploads, voting, and real-time updates
+ * With Discord OAuth2 authentication
  */
+
+require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
@@ -9,11 +12,21 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
+const https = require('https');
 const WebSocket = require('ws');
-const { initDatabase, memeDB, foldersDB, logsDB, botsDB } = require('./database');
+const session = require('express-session');
+const { initDatabase, memeDB, foldersDB, logsDB, botsDB, adminsDB, serverFoldersDB, profilesDB } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Discord OAuth2 Config
+const DISCORD_CONFIG = {
+    clientId: process.env.DISCORD_CLIENT_ID || '',
+    clientSecret: process.env.DISCORD_CLIENT_SECRET || '',
+    redirectUri: process.env.DISCORD_REDIRECT_URI || `http://localhost:${PORT}/auth/discord/callback`,
+    scopes: ['identify', 'email']
+};
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '..', 'uploads');
@@ -22,8 +35,21 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Middleware
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+
+// Session middleware
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'change-this-secret-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: false, // Set to true in production with HTTPS
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    }
+}));
+
 app.use(express.static(path.join(__dirname, '..')));
 app.use('/uploads', express.static(uploadsDir));
 
@@ -101,6 +127,184 @@ function checkAndBroadcastLeaderChange(userId) {
         broadcast('leader_change', { memeOfDay: newLeader });
     }
 }
+
+// ===========================
+// DISCORD OAUTH2 AUTH
+// ===========================
+
+// Helper function to make HTTPS requests
+function httpsRequest(options, postData = null) {
+    return new Promise((resolve, reject) => {
+        const req = https.request(options, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                try {
+                    resolve(JSON.parse(data));
+                } catch (e) {
+                    resolve(data);
+                }
+            });
+        });
+        req.on('error', reject);
+        if (postData) req.write(postData);
+        req.end();
+    });
+}
+
+// Auth middleware - check if user is authenticated
+function requireAuth(req, res, next) {
+    if (req.session && req.session.user) {
+        return next();
+    }
+    res.status(401).json({ success: false, error: 'Not authenticated', requireLogin: true });
+}
+
+// Check auth status
+app.get('/auth/me', (req, res) => {
+    if (req.session && req.session.user) {
+        res.json({
+            success: true,
+            authenticated: true,
+            user: req.session.user
+        });
+    } else {
+        res.json({
+            success: true,
+            authenticated: false
+        });
+    }
+});
+
+// Initiate Discord OAuth2 flow
+app.get('/auth/discord', (req, res) => {
+    if (!DISCORD_CONFIG.clientId) {
+        return res.status(500).json({
+            success: false,
+            error: 'Discord OAuth2 not configured. Set DISCORD_CLIENT_ID in .env'
+        });
+    }
+
+    const params = new URLSearchParams({
+        client_id: DISCORD_CONFIG.clientId,
+        redirect_uri: DISCORD_CONFIG.redirectUri,
+        response_type: 'code',
+        scope: DISCORD_CONFIG.scopes.join(' ')
+    });
+
+    res.redirect(`https://discord.com/api/oauth2/authorize?${params}`);
+});
+
+// Discord OAuth2 callback
+app.get('/auth/discord/callback', async (req, res) => {
+    const { code, error } = req.query;
+
+    if (error) {
+        return res.redirect('/?auth_error=' + encodeURIComponent(error));
+    }
+
+    if (!code) {
+        return res.redirect('/?auth_error=no_code');
+    }
+
+    try {
+        // Exchange code for token
+        const tokenData = new URLSearchParams({
+            client_id: DISCORD_CONFIG.clientId,
+            client_secret: DISCORD_CONFIG.clientSecret,
+            grant_type: 'authorization_code',
+            code: code,
+            redirect_uri: DISCORD_CONFIG.redirectUri
+        });
+
+        const tokenRes = await httpsRequest({
+            hostname: 'discord.com',
+            path: '/api/oauth2/token',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': Buffer.byteLength(tokenData.toString())
+            }
+        }, tokenData.toString());
+
+        if (tokenRes.error) {
+            console.error('Token error:', tokenRes);
+            return res.redirect('/?auth_error=token_failed');
+        }
+
+        // Get user info
+        const userRes = await httpsRequest({
+            hostname: 'discord.com',
+            path: '/api/users/@me',
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${tokenRes.access_token}`
+            }
+        });
+
+        if (!userRes.id) {
+            console.error('User fetch error:', userRes);
+            return res.redirect('/?auth_error=user_fetch_failed');
+        }
+
+        // Store user in session
+        req.session.user = {
+            id: userRes.id,
+            username: userRes.username,
+            discriminator: userRes.discriminator,
+            avatar: userRes.avatar,
+            email: userRes.email,
+            accessToken: tokenRes.access_token
+        };
+
+        // Log the action
+        logsDB.addActionLog(
+            'user_login',
+            userRes.id,
+            userRes.username,
+            'oauth',
+            'discord',
+            'Discord OAuth2',
+            `Email: ${userRes.email || 'not provided'}`,
+            null,
+            null
+        );
+
+        // Redirect to dashboard
+        res.redirect('/?auth_success=1');
+
+    } catch (error) {
+        console.error('OAuth callback error:', error);
+        res.redirect('/?auth_error=callback_failed');
+    }
+});
+
+// Logout
+app.post('/auth/logout', (req, res) => {
+    const user = req.session.user;
+
+    if (user) {
+        logsDB.addActionLog(
+            'user_logout',
+            user.id,
+            user.username,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+    }
+
+    req.session.destroy((err) => {
+        if (err) {
+            return res.status(500).json({ success: false, error: 'Logout failed' });
+        }
+        res.clearCookie('connect.sid');
+        res.json({ success: true });
+    });
+});
 
 // API Routes
 
@@ -506,6 +710,265 @@ app.patch('/api/bots/:id', (req, res) => {
     } catch (error) {
         console.error('Error updating bot:', error);
         res.status(500).json({ success: false, error: 'Failed to update bot settings' });
+    }
+});
+
+// ===========================
+// ADMINS API
+// ===========================
+
+// Get admins list
+app.get('/api/admins', (req, res) => {
+    try {
+        const botId = parseInt(req.query.botId) || 1;
+        const admins = adminsDB.getAdmins(botId);
+        res.json({ success: true, admins });
+    } catch (error) {
+        console.error('Error getting admins:', error);
+        res.status(500).json({ success: false, error: 'Failed to get admins' });
+    }
+});
+
+// Add admin
+app.post('/api/admins', (req, res) => {
+    try {
+        const { userId, username, role, botId, actorName } = req.body;
+
+        if (!userId || !username) {
+            return res.status(400).json({ success: false, error: 'userId and username are required' });
+        }
+
+        const result = adminsDB.addAdmin(userId, username, role || 'admin', botId || 1);
+
+        if (!result.success) {
+            return res.status(400).json(result);
+        }
+
+        // Log the action
+        logsDB.addActionLog(
+            'admin_added',
+            'admin',
+            actorName || 'System',
+            'user',
+            userId,
+            username,
+            `Role: ${role || 'admin'}`,
+            null,
+            null
+        );
+
+        // Broadcast update
+        broadcast('admin_added', { id: result.id, userId, username, role: role || 'admin' });
+
+        res.json({ success: true, id: result.id });
+    } catch (error) {
+        console.error('Error adding admin:', error);
+        res.status(500).json({ success: false, error: 'Failed to add admin' });
+    }
+});
+
+// Remove admin
+app.delete('/api/admins/:id', (req, res) => {
+    try {
+        const adminId = parseInt(req.params.id);
+        const actorName = req.body.actorName || 'System';
+
+        const result = adminsDB.removeAdmin(adminId);
+
+        if (!result.success) {
+            return res.status(404).json(result);
+        }
+
+        // Log the action
+        logsDB.addActionLog(
+            'admin_removed',
+            'admin',
+            actorName,
+            'user',
+            result.admin.user_id,
+            result.admin.username,
+            `Was: ${result.admin.role}`,
+            null,
+            null
+        );
+
+        // Broadcast update
+        broadcast('admin_removed', { id: adminId, username: result.admin.username });
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error removing admin:', error);
+        res.status(500).json({ success: false, error: 'Failed to remove admin' });
+    }
+});
+
+// ===========================
+// SERVER FOLDERS API
+// ===========================
+
+// Get all folders with servers
+app.get('/api/server-folders', (req, res) => {
+    try {
+        const ownerId = req.session?.user?.id || 'default';
+        const folders = serverFoldersDB.getFolders(ownerId);
+        res.json({ success: true, folders });
+    } catch (error) {
+        console.error('Error getting folders:', error);
+        res.status(500).json({ success: false, error: 'Failed to get folders' });
+    }
+});
+
+// Create folder
+app.post('/api/server-folders', (req, res) => {
+    try {
+        const { name, color } = req.body;
+        const ownerId = req.session?.user?.id || 'default';
+
+        if (!name) {
+            return res.status(400).json({ success: false, error: 'Name is required' });
+        }
+
+        const result = serverFoldersDB.createFolder(name, ownerId, color);
+        broadcast('folder_created', { id: result.id, name, color });
+        res.json(result);
+    } catch (error) {
+        console.error('Error creating folder:', error);
+        res.status(500).json({ success: false, error: 'Failed to create folder' });
+    }
+});
+
+// Update folder
+app.patch('/api/server-folders/:id', (req, res) => {
+    try {
+        const folderId = parseInt(req.params.id);
+        const updated = serverFoldersDB.updateFolder(folderId, req.body);
+        if (!updated) {
+            return res.status(404).json({ success: false, error: 'Folder not found' });
+        }
+        res.json({ success: true, folder: updated });
+    } catch (error) {
+        console.error('Error updating folder:', error);
+        res.status(500).json({ success: false, error: 'Failed to update folder' });
+    }
+});
+
+// Delete folder
+app.delete('/api/server-folders/:id', (req, res) => {
+    try {
+        const folderId = parseInt(req.params.id);
+        const result = serverFoldersDB.deleteFolder(folderId);
+        if (!result.success) {
+            return res.status(404).json(result);
+        }
+        broadcast('folder_deleted', { id: folderId });
+        res.json(result);
+    } catch (error) {
+        console.error('Error deleting folder:', error);
+        res.status(500).json({ success: false, error: 'Failed to delete folder' });
+    }
+});
+
+// Add server to folder
+app.post('/api/server-folders/:id/servers', (req, res) => {
+    try {
+        const folderId = parseInt(req.params.id);
+        const { serverId, serverName, serverIcon } = req.body;
+
+        if (!serverId || !serverName) {
+            return res.status(400).json({ success: false, error: 'serverId and serverName are required' });
+        }
+
+        const result = serverFoldersDB.addServerToFolder(folderId, serverId, serverName, serverIcon);
+        if (!result.success) {
+            return res.status(400).json(result);
+        }
+        broadcast('server_added_to_folder', { folderId, serverId, serverName });
+        res.json(result);
+    } catch (error) {
+        console.error('Error adding server to folder:', error);
+        res.status(500).json({ success: false, error: 'Failed to add server' });
+    }
+});
+
+// Remove server from folder
+app.delete('/api/server-folders/:folderId/servers/:serverId', (req, res) => {
+    try {
+        const folderId = parseInt(req.params.folderId);
+        const serverId = req.params.serverId;
+
+        const result = serverFoldersDB.removeServerFromFolder(folderId, serverId);
+        broadcast('server_removed_from_folder', { folderId, serverId });
+        res.json(result);
+    } catch (error) {
+        console.error('Error removing server from folder:', error);
+        res.status(500).json({ success: false, error: 'Failed to remove server' });
+    }
+});
+
+// ===========================
+// PROFILE API
+// ===========================
+
+// Get profile
+app.get('/api/profile', (req, res) => {
+    try {
+        const userId = req.session?.user?.id || 'default';
+        const profile = profilesDB.getOrCreateProfile(userId);
+        res.json({ success: true, profile });
+    } catch (error) {
+        console.error('Error getting profile:', error);
+        res.status(500).json({ success: false, error: 'Failed to get profile' });
+    }
+});
+
+// Update profile
+app.patch('/api/profile', (req, res) => {
+    try {
+        const userId = req.session?.user?.id || 'default';
+        const { name, bio, avatar } = req.body;
+
+        const profile = profilesDB.updateProfile(userId, { name, bio, avatar });
+        res.json({ success: true, profile });
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        res.status(500).json({ success: false, error: 'Failed to update profile' });
+    }
+});
+
+// Connect Discord (simulated - stores from session if available)
+app.post('/api/profile/discord', (req, res) => {
+    try {
+        const userId = req.session?.user?.id || 'default';
+        const sessionUser = req.session?.user;
+
+        if (sessionUser && sessionUser.id) {
+            // Use session Discord data
+            const profile = profilesDB.connectDiscord(
+                userId,
+                sessionUser.id,
+                sessionUser.username,
+                sessionUser.avatar ? `https://cdn.discordapp.com/avatars/${sessionUser.id}/${sessionUser.avatar}.png` : null
+            );
+            res.json({ success: true, profile });
+        } else {
+            // No Discord session - need to auth first
+            res.status(400).json({ success: false, error: 'Discord not authenticated. Use /auth/discord first.' });
+        }
+    } catch (error) {
+        console.error('Error connecting Discord:', error);
+        res.status(500).json({ success: false, error: 'Failed to connect Discord' });
+    }
+});
+
+// Disconnect Discord
+app.delete('/api/profile/discord', (req, res) => {
+    try {
+        const userId = req.session?.user?.id || 'default';
+        const profile = profilesDB.disconnectDiscord(userId);
+        res.json({ success: true, profile });
+    } catch (error) {
+        console.error('Error disconnecting Discord:', error);
+        res.status(500).json({ success: false, error: 'Failed to disconnect Discord' });
     }
 });
 

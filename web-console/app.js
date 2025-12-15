@@ -37,6 +37,98 @@
         }
     }
 
+    // ===========================
+    // AUTH MODULE
+    // ===========================
+    const Auth = {
+        currentUser: null,
+        isAuthenticated: false,
+
+        async checkAuth() {
+            try {
+                const res = await fetch('/auth/me', { credentials: 'include' });
+                const data = await res.json();
+
+                if (data.success && data.authenticated) {
+                    this.currentUser = data.user;
+                    this.isAuthenticated = true;
+                    this.updateUI();
+                    return true;
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+            }
+            this.isAuthenticated = false;
+            this.currentUser = null;
+            return false;
+        },
+
+        login() {
+            window.location.href = '/auth/discord';
+        },
+
+        async logout() {
+            try {
+                await fetch('/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+            } catch (error) {
+                console.error('Logout failed:', error);
+            }
+            this.isAuthenticated = false;
+            this.currentUser = null;
+            window.location.reload();
+        },
+
+        updateUI() {
+            // Update user menu with real data
+            const userAvatar = document.querySelector('.user-avatar');
+            const userName = document.querySelector('.user-name');
+
+            if (this.currentUser && userAvatar && userName) {
+                userName.textContent = this.currentUser.username;
+                userAvatar.textContent = this.currentUser.username.charAt(0).toUpperCase();
+
+                if (this.currentUser.avatar) {
+                    userAvatar.style.backgroundImage = `url(https://cdn.discordapp.com/avatars/${this.currentUser.id}/${this.currentUser.avatar}.png)`;
+                    userAvatar.style.backgroundSize = 'cover';
+                    userAvatar.textContent = '';
+                }
+            }
+        },
+
+        requireAuth(callback) {
+            if (this.isAuthenticated) {
+                callback();
+            } else {
+                // Show landing page or redirect to login
+                showLoginScreen();
+            }
+        }
+    };
+
+    // Make Auth globally accessible
+    window.Auth = Auth;
+
+    function showLoginScreen() {
+        // Hide app, show landing
+        const landingPage = document.getElementById('landing-page');
+        const appScreen = document.getElementById('app-screen');
+
+        if (landingPage) landingPage.classList.remove('hidden');
+        if (appScreen) appScreen.classList.add('hidden');
+    }
+
+    function showAppScreen() {
+        // Hide landing, show app
+        const landingPage = document.getElementById('landing-page');
+        const appScreen = document.getElementById('app-screen');
+
+        if (landingPage) landingPage.classList.add('hidden');
+        if (appScreen) appScreen.classList.remove('hidden');
+    }
+
     function initSettings() {
         loadSettings();
 
@@ -637,6 +729,477 @@
             }
         }
     };
+
+    // ===========================
+    // ADMINS UI MODULE
+    // ===========================
+    const AdminsUI = {
+        tbody: null,
+        countEl: null,
+
+        init() {
+            this.tbody = $('#admins-tbody');
+            this.countEl = $('#admins-count');
+
+            // Add admin button
+            $('#btn-add-admin')?.addEventListener('click', () => this.addAdmin());
+
+            // Enter key in inputs
+            ['admin-user-id', 'admin-username'].forEach(id => {
+                $(`#${id}`)?.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.addAdmin();
+                });
+            });
+        },
+
+        async load() {
+            if (!this.tbody) return;
+            this.tbody.innerHTML = '<tr><td colspan="5" class="no-data">Загрузка...</td></tr>';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admins`);
+                const data = await res.json();
+
+                if (!data.success) {
+                    throw new Error(data.error);
+                }
+
+                this.render(data.admins);
+            } catch (error) {
+                console.error('Failed to load admins:', error);
+                this.tbody.innerHTML = '<tr><td colspan="5" class="no-data">Ошибка загрузки</td></tr>';
+            }
+        },
+
+        render(admins) {
+            if (!this.tbody) return;
+
+            if (this.countEl) {
+                this.countEl.textContent = admins.length;
+            }
+
+            if (admins.length === 0) {
+                this.tbody.innerHTML = '<tr><td colspan="5" class="no-data">Нет администраторов</td></tr>';
+                return;
+            }
+
+            this.tbody.innerHTML = admins.map(admin => `
+                <tr data-id="${admin.id}">
+                    <td><code>${this.escape(admin.user_id)}</code></td>
+                    <td>${this.escape(admin.username)}</td>
+                    <td><span class="role-badge ${admin.role}">${admin.role}</span></td>
+                    <td>${this.formatDate(admin.created_at)}</td>
+                    <td><button class="btn-remove" onclick="AdminsUI.remove(${admin.id})">Удалить</button></td>
+                </tr>
+            `).join('');
+        },
+
+        async addAdmin() {
+            const userIdEl = $('#admin-user-id');
+            const usernameEl = $('#admin-username');
+            const roleEl = $('#admin-role');
+
+            const userId = userIdEl?.value.trim();
+            const username = usernameEl?.value.trim();
+            const role = roleEl?.value || 'admin';
+
+            if (!userId || !username) {
+                showToast('Заполните User ID и Username', 'warning');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admins`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, username, role, actorName: 'Operator' })
+                });
+
+                const data = await res.json();
+
+                if (!data.success) {
+                    throw new Error(data.error);
+                }
+
+                showToast(`Админ ${username} добавлен`, 'success');
+                userIdEl.value = '';
+                usernameEl.value = '';
+                this.load();
+            } catch (error) {
+                console.error('Failed to add admin:', error);
+                showToast(error.message || 'Ошибка добавления', 'error');
+            }
+        },
+
+        async remove(adminId) {
+            if (!confirm('Удалить этого администратора?')) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admins/${adminId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ actorName: 'Operator' })
+                });
+
+                const data = await res.json();
+
+                if (!data.success) {
+                    throw new Error(data.error);
+                }
+
+                showToast('Админ удалён', 'success');
+                this.load();
+            } catch (error) {
+                console.error('Failed to remove admin:', error);
+                showToast('Ошибка удаления', 'error');
+            }
+        },
+
+        formatDate(dateStr) {
+            if (!dateStr) return '—';
+            return new Date(dateStr).toLocaleDateString('ru-RU');
+        },
+
+        escape(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    };
+
+    // Make AdminsUI globally accessible for onclick handlers
+    window.AdminsUI = AdminsUI;
+
+    // ===========================
+    // SERVER FOLDERS UI MODULE
+    // ===========================
+    const ServerFoldersUI = {
+        container: null,
+        folders: [],
+
+        init() {
+            this.container = $('#folders-container');
+
+            // Create folder button
+            $('#btn-create-folder')?.addEventListener('click', () => this.createFolder());
+            $('#folder-name')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.createFolder();
+            });
+
+            // Add server button
+            $('#btn-add-server')?.addEventListener('click', () => this.addServer());
+        },
+
+        async load() {
+            if (!this.container) return;
+            this.container.innerHTML = '<div class="no-data">Загрузка папок...</div>';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/server-folders`, { credentials: 'include' });
+                const data = await res.json();
+
+                if (!data.success) throw new Error(data.error);
+
+                this.folders = data.folders;
+                this.renderFolders();
+                this.updateFolderSelect();
+            } catch (error) {
+                console.error('Failed to load folders:', error);
+                this.container.innerHTML = '<div class="no-data">Ошибка загрузки папок</div>';
+            }
+        },
+
+        updateFolderSelect() {
+            const select = $('#target-folder');
+            if (!select) return;
+
+            select.innerHTML = '<option value="">Выберите папку</option>' +
+                this.folders.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+        },
+
+        renderFolders() {
+            if (!this.container) return;
+
+            if (this.folders.length === 0) {
+                this.container.innerHTML = '<div class="no-data">Нет папок. Создайте первую!</div>';
+                return;
+            }
+
+            this.container.innerHTML = this.folders.map(folder => `
+                <div class="folder-card" style="border-left-color: ${folder.color}">
+                    <div class="folder-header">
+                        <div class="folder-title">
+                            <span class="folder-icon">📁</span>
+                            <span>${this.escape(folder.name)}</span>
+                            <span class="badge badge-neutral">${folder.servers?.length || 0}</span>
+                        </div>
+                        <div class="folder-actions">
+                            <button class="btn-remove" onclick="ServerFoldersUI.deleteFolder(${folder.id})">Удалить</button>
+                        </div>
+                    </div>
+                    <div class="server-list">
+                        ${folder.servers && folder.servers.length > 0
+                    ? folder.servers.map(s => `
+                                <div class="server-item">
+                                    <div class="server-info">
+                                        <div class="server-icon">${s.server_name?.charAt(0) || 'S'}</div>
+                                        <div>
+                                            <div class="server-name">${this.escape(s.server_name)}</div>
+                                            <div class="server-id">${s.server_id}</div>
+                                        </div>
+                                    </div>
+                                    <button class="btn-remove" onclick="ServerFoldersUI.removeServer(${folder.id}, '${s.server_id}')">✕</button>
+                                </div>
+                            `).join('')
+                    : '<div class="empty-folder">Папка пуста</div>'
+                }
+                    </div>
+                </div>
+            `).join('');
+        },
+
+        async createFolder() {
+            const nameEl = $('#folder-name');
+            const colorEl = $('#folder-color');
+            const name = nameEl?.value.trim();
+            const color = colorEl?.value || '#00d9ff';
+
+            if (!name) {
+                showToast('Введите название папки', 'warning');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/server-folders`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ name, color })
+                });
+
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error);
+
+                showToast(`Папка "${name}" создана`, 'success');
+                nameEl.value = '';
+                this.load();
+            } catch (error) {
+                console.error('Failed to create folder:', error);
+                showToast('Ошибка создания папки', 'error');
+            }
+        },
+
+        async addServer() {
+            const folderId = $('#target-folder')?.value;
+            const serverId = $('#server-id')?.value.trim();
+            const serverName = $('#server-name')?.value.trim();
+
+            if (!folderId) { showToast('Выберите папку', 'warning'); return; }
+            if (!serverId) { showToast('Введите Server ID', 'warning'); return; }
+            if (!serverName) { showToast('Введите название сервера', 'warning'); return; }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/server-folders/${folderId}/servers`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ serverId, serverName })
+                });
+
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error);
+
+                showToast(`Сервер добавлен`, 'success');
+                $('#server-id').value = '';
+                $('#server-name').value = '';
+                this.load();
+            } catch (error) {
+                console.error('Failed to add server:', error);
+                showToast(error.message || 'Ошибка добавления', 'error');
+            }
+        },
+
+        async removeServer(folderId, serverId) {
+            try {
+                await fetch(`${API_BASE}/api/server-folders/${folderId}/servers/${serverId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                showToast('Сервер удалён из папки', 'success');
+                this.load();
+            } catch (error) {
+                console.error('Failed to remove server:', error);
+                showToast('Ошибка удаления', 'error');
+            }
+        },
+
+        async deleteFolder(folderId) {
+            if (!confirm('Удалить эту папку и все серверы в ней?')) return;
+
+            try {
+                await fetch(`${API_BASE}/api/server-folders/${folderId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                showToast('Папка удалена', 'success');
+                this.load();
+            } catch (error) {
+                console.error('Failed to delete folder:', error);
+                showToast('Ошибка удаления', 'error');
+            }
+        },
+
+        escape(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    };
+
+    window.ServerFoldersUI = ServerFoldersUI;
+
+    // ===========================
+    // PROFILE UI MODULE
+    // ===========================
+    const ProfileUI = {
+        profile: null,
+
+        init() {
+            $('#btn-save-profile')?.addEventListener('click', () => this.save());
+            $('#btn-connect-discord')?.addEventListener('click', () => this.connectDiscord());
+        },
+
+        async load() {
+            try {
+                const res = await fetch(`${API_BASE}/api/profile`, { credentials: 'include' });
+                const data = await res.json();
+
+                if (data.success) {
+                    this.profile = data.profile;
+                    this.render();
+                }
+            } catch (error) {
+                console.error('Failed to load profile:', error);
+            }
+        },
+
+        render() {
+            if (!this.profile) return;
+
+            const nameEl = $('#profile-name');
+            const bioEl = $('#profile-bio');
+            const avatarEl = $('#profile-avatar');
+
+            if (nameEl) nameEl.value = this.profile.name || '';
+            if (bioEl) bioEl.value = this.profile.bio || '';
+            if (avatarEl) {
+                avatarEl.textContent = (this.profile.name || 'U').charAt(0).toUpperCase();
+                if (this.profile.avatar) {
+                    avatarEl.style.backgroundImage = `url(${this.profile.avatar})`;
+                    avatarEl.textContent = '';
+                }
+            }
+
+            this.renderDiscordStatus();
+        },
+
+        renderDiscordStatus() {
+            const container = $('#discord-status');
+            if (!container) return;
+
+            if (this.profile.discord_id) {
+                container.innerHTML = `
+                    <div class="discord-connected">
+                        <div class="discord-avatar" style="${this.profile.discord_avatar ? `background-image:url(${this.profile.discord_avatar})` : ''}">
+                            ${this.profile.discord_avatar ? '' : '🎮'}
+                        </div>
+                        <div class="discord-info">
+                            <h4>${this.profile.discord_name || 'Discord User'}</h4>
+                            <p>ID: ${this.profile.discord_id}</p>
+                        </div>
+                        <button class="btn btn-ghost btn-disconnect" onclick="ProfileUI.disconnectDiscord()">Отключить</button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="discord-not-connected">
+                        <p>Discord не подключён</p>
+                        <button id="btn-connect-discord" class="btn btn-primary" onclick="ProfileUI.connectDiscord()">🎮 Подключить Discord</button>
+                    </div>
+                `;
+            }
+        },
+
+        async save() {
+            const name = $('#profile-name')?.value.trim();
+            const bio = $('#profile-bio')?.value.trim();
+            const statusEl = $('#profile-save-status');
+
+            if (statusEl) {
+                statusEl.textContent = 'Сохранение...';
+                statusEl.className = 'save-status saving';
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/profile`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ name, bio })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    this.profile = data.profile;
+                    if (statusEl) {
+                        statusEl.textContent = 'Сохранено!';
+                        statusEl.className = 'save-status saved';
+                    }
+                    showToast('Профиль сохранён', 'success');
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                console.error('Failed to save profile:', error);
+                if (statusEl) {
+                    statusEl.textContent = 'Ошибка';
+                    statusEl.className = 'save-status failed';
+                }
+                showToast('Ошибка сохранения', 'error');
+            }
+        },
+
+        connectDiscord() {
+            // Redirect to Discord OAuth
+            window.location.href = '/auth/discord';
+        },
+
+        async disconnectDiscord() {
+            if (!confirm('Отключить Discord?')) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/profile/discord`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    this.profile = data.profile;
+                    this.renderDiscordStatus();
+                    showToast('Discord отключён', 'success');
+                }
+            } catch (error) {
+                console.error('Failed to disconnect Discord:', error);
+                showToast('Ошибка отключения', 'error');
+            }
+        }
+    };
+
+    window.ProfileUI = ProfileUI;
 
     // ===========================
     // LOGS UI MODULE
@@ -1382,8 +1945,60 @@
         FoldersUI.init();
         LogsUI.init();
         BotSettingsUI.init();
+        AdminsUI.init();
+        ServerFoldersUI.init();
+        ProfileUI.init();
 
+        // Bind login/logout buttons
+        $('#btn-login')?.addEventListener('click', () => Auth.login());
+        $('#btn-access')?.addEventListener('click', async () => {
+            // Check if authenticated, if so go to app, otherwise login
+            if (Auth.isAuthenticated) {
+                showAppScreen();
+            } else {
+                Auth.login();
+            }
+        });
+
+        // Logout button in settings
+        $('#btn-logout')?.addEventListener('click', () => Auth.logout());
+
+        // Check URL params for auth status
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('auth_success')) {
+            // Clean URL and skip intro - go straight to app
+            window.history.replaceState({}, '', window.location.pathname);
+            showToast('Успешная авторизация через Discord!', 'success');
+            // Skip intro, show app directly
+            const landing = $('#landing-page');
+            const app = $('#app-main');
+            if (landing) landing.classList.add('hidden');
+            if (app) app.classList.remove('hidden');
+            return; // Don't run intro
+        }
+        if (urlParams.get('auth_error')) {
+            showToast('Ошибка авторизации: ' + urlParams.get('auth_error'), 'error');
+            window.history.replaceState({}, '', window.location.pathname);
+        }
+
+        // Always run intro - check session in background
         Intro.init();
+
+        // Check session in background (non-blocking)
+        checkSessionInBackground();
+    }
+
+    function checkSessionInBackground() {
+        fetch(`${API_BASE}/auth/me`, { credentials: 'include' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.user) {
+                    Auth.isAuthenticated = true;
+                    Auth.currentUser = data.user;
+                    Auth.updateUI();
+                }
+            })
+            .catch(() => { /* ignore errors */ });
     }
 
     // Load memes when viewing memes section
@@ -1396,11 +2011,15 @@
         } else if (viewName === 'meme-of-day') {
             MemeOfDay.load();
         } else if (viewName === 'folders') {
-            FoldersUI.loadFolders();
+            ServerFoldersUI.load();
         } else if (viewName === 'logs-messages') {
             LogsUI.loadMessages(true);
         } else if (viewName === 'logs-actions') {
             LogsUI.loadActions(true);
+        } else if (viewName === 'moderation') {
+            AdminsUI.load();
+        } else if (viewName === 'profile') {
+            ProfileUI.load();
         }
     };
 
