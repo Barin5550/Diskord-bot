@@ -3434,7 +3434,43 @@ tr:hover td {
 /* Help */
 .tetris-help {
     margin-top: var(--space-4);
+    text-align: left;
+    padding: var(--space-3);
+    background: var(--color-bg-card);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--color-border);
+}
+
+.tetris-help .panel-label {
+    margin-bottom: var(--space-2);
+}
+
+.tetris-keys {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.key-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.key {
+    display: inline-block;
+    padding: 2px 6px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-accent);
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--color-accent);
+    min-width: 24px;
     text-align: center;
+    box-shadow: 0 0 5px var(--color-accent-dim);
 }
 
 .tetris-help summary {
