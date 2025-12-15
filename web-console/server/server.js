@@ -10,7 +10,7 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const WebSocket = require('ws');
-const memeDB = require('./database');
+const { memeDB, foldersDB, logsDB } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -226,6 +226,154 @@ app.delete('/api/memes/:id', (req, res) => {
     } catch (error) {
         console.error('Error deleting meme:', error);
         res.status(500).json({ success: false, error: 'Failed to delete meme' });
+    }
+});
+
+// ===========================
+// FOLDERS API
+// ===========================
+
+// Get all folders
+app.get('/api/folders', (req, res) => {
+    try {
+        const folders = foldersDB.getAllFolders();
+        res.json(folders);
+    } catch (error) {
+        console.error('Error getting folders:', error);
+        res.status(500).json({ error: 'Failed to get folders' });
+    }
+});
+
+// Create folder
+app.post('/api/folders', (req, res) => {
+    try {
+        const { name, color, ownerId } = req.body;
+        if (!name || !ownerId) {
+            return res.status(400).json({ error: 'Name and ownerId are required' });
+        }
+        const folder = foldersDB.createFolder(name, ownerId, color);
+        broadcast('folder_created', folder);
+        res.json(folder);
+    } catch (error) {
+        console.error('Error creating folder:', error);
+        res.status(500).json({ error: 'Failed to create folder' });
+    }
+});
+
+// Update folder
+app.put('/api/folders/:id', (req, res) => {
+    try {
+        const folderId = parseInt(req.params.id);
+        const { name, color, ownerId } = req.body;
+        const success = foldersDB.updateFolder(folderId, name, color, ownerId);
+        if (success) {
+            const folder = foldersDB.getFolderById(folderId);
+            broadcast('folder_updated', folder);
+            res.json(folder);
+        } else {
+            res.status(404).json({ error: 'Folder not found or not authorized' });
+        }
+    } catch (error) {
+        console.error('Error updating folder:', error);
+        res.status(500).json({ error: 'Failed to update folder' });
+    }
+});
+
+// Delete folder
+app.delete('/api/folders/:id', (req, res) => {
+    try {
+        const folderId = parseInt(req.params.id);
+        const { ownerId } = req.body;
+        const success = foldersDB.deleteFolder(folderId, ownerId);
+        if (success) {
+            broadcast('folder_deleted', { folderId });
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ error: 'Folder not found or not authorized' });
+        }
+    } catch (error) {
+        console.error('Error deleting folder:', error);
+        res.status(500).json({ error: 'Failed to delete folder' });
+    }
+});
+
+// Get servers in folder
+app.get('/api/folders/:id/servers', (req, res) => {
+    try {
+        const folderId = parseInt(req.params.id);
+        const servers = foldersDB.getServersInFolder(folderId);
+        res.json(servers);
+    } catch (error) {
+        console.error('Error getting servers:', error);
+        res.status(500).json({ error: 'Failed to get servers' });
+    }
+});
+
+// Add server to folder
+app.post('/api/folders/:id/servers', (req, res) => {
+    try {
+        const folderId = parseInt(req.params.id);
+        const { serverId, serverName, serverIcon } = req.body;
+        if (!serverId || !serverName) {
+            return res.status(400).json({ error: 'serverId and serverName are required' });
+        }
+        foldersDB.addServerToFolder(folderId, serverId, serverName, serverIcon);
+        const servers = foldersDB.getServersInFolder(folderId);
+        broadcast('server_added', { folderId, servers });
+        res.json({ success: true, servers });
+    } catch (error) {
+        console.error('Error adding server:', error);
+        res.status(500).json({ error: 'Failed to add server' });
+    }
+});
+
+// Remove server from folder
+app.delete('/api/folders/:folderId/servers/:serverId', (req, res) => {
+    try {
+        const folderId = parseInt(req.params.folderId);
+        const serverId = req.params.serverId;
+        const success = foldersDB.removeServerFromFolder(folderId, serverId);
+        if (success) {
+            broadcast('server_removed', { folderId, serverId });
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ error: 'Server not found in folder' });
+        }
+    } catch (error) {
+        console.error('Error removing server:', error);
+        res.status(500).json({ error: 'Failed to remove server' });
+    }
+});
+
+// ===========================
+// MESSAGE LOGS API
+// ===========================
+
+// Get message logs
+app.get('/api/logs/messages', (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 50;
+        const logs = logsDB.getMessageLogs(limit);
+        res.json(logs);
+    } catch (error) {
+        console.error('Error getting message logs:', error);
+        res.status(500).json({ error: 'Failed to get message logs' });
+    }
+});
+
+// Add message log (for testing or bot integration)
+app.post('/api/logs/messages', (req, res) => {
+    try {
+        const { serverId, serverName, userId, username, content, channelName } = req.body;
+        if (!userId || !username || !content) {
+            return res.status(400).json({ error: 'userId, username, and content are required' });
+        }
+        const logId = logsDB.addMessageLog(serverId, serverName, userId, username, content, channelName);
+        broadcast('message_logged', { id: logId, ...req.body, created_at: new Date().toISOString() });
+        res.json({ success: true, id: logId });
+    } catch (error) {
+        console.error('Error adding message log:', error);
+        res.status(500).json({ error: 'Failed to add message log' });
     }
 });
 

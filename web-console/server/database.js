@@ -32,9 +32,42 @@ db.exec(`
         UNIQUE(meme_id, user_id)
     );
 
+    CREATE TABLE IF NOT EXISTS folders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        color TEXT DEFAULT '#FFE989',
+        owner_id TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS server_folders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        folder_id INTEGER NOT NULL,
+        server_id TEXT NOT NULL,
+        server_name TEXT NOT NULL,
+        server_icon TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE,
+        UNIQUE(folder_id, server_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS message_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_id TEXT,
+        server_name TEXT,
+        user_id TEXT NOT NULL,
+        username TEXT NOT NULL,
+        content TEXT NOT NULL,
+        channel_name TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_memes_like_count ON memes(like_count DESC);
     CREATE INDEX IF NOT EXISTS idx_memes_created_at ON memes(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_votes_meme_user ON votes(meme_id, user_id);
+    CREATE INDEX IF NOT EXISTS idx_folders_owner ON folders(owner_id);
+    CREATE INDEX IF NOT EXISTS idx_server_folders_folder ON server_folders(folder_id);
+    CREATE INDEX IF NOT EXISTS idx_message_logs_created ON message_logs(created_at DESC);
 `);
 
 // Prepared statements for better performance
@@ -132,6 +165,53 @@ const statements = {
 
     getMemeImagePath: db.prepare(`
         SELECT image_path FROM memes WHERE id = ?
+    `),
+
+    // Folders
+    getAllFolders: db.prepare(`
+        SELECT * FROM folders ORDER BY created_at DESC
+    `),
+
+    getFoldersByOwner: db.prepare(`
+        SELECT * FROM folders WHERE owner_id = ? ORDER BY created_at DESC
+    `),
+
+    getFolderById: db.prepare(`
+        SELECT * FROM folders WHERE id = ?
+    `),
+
+    insertFolder: db.prepare(`
+        INSERT INTO folders (name, color, owner_id) VALUES (?, ?, ?)
+    `),
+
+    updateFolder: db.prepare(`
+        UPDATE folders SET name = ?, color = ? WHERE id = ? AND owner_id = ?
+    `),
+
+    deleteFolder: db.prepare(`
+        DELETE FROM folders WHERE id = ? AND owner_id = ?
+    `),
+
+    // Server Folders
+    getServersByFolder: db.prepare(`
+        SELECT * FROM server_folders WHERE folder_id = ? ORDER BY created_at DESC
+    `),
+
+    addServerToFolder: db.prepare(`
+        INSERT OR IGNORE INTO server_folders (folder_id, server_id, server_name, server_icon) VALUES (?, ?, ?, ?)
+    `),
+
+    removeServerFromFolder: db.prepare(`
+        DELETE FROM server_folders WHERE folder_id = ? AND server_id = ?
+    `),
+
+    // Message Logs
+    getMessageLogs: db.prepare(`
+        SELECT * FROM message_logs ORDER BY created_at DESC LIMIT ?
+    `),
+
+    insertMessageLog: db.prepare(`
+        INSERT INTO message_logs (server_id, server_name, user_id, username, content, channel_name) VALUES (?, ?, ?, ?, ?, ?)
     `)
 };
 
@@ -223,4 +303,61 @@ const memeDB = {
     }
 };
 
-module.exports = memeDB;
+// Folders database functions
+const foldersDB = {
+    getAllFolders() {
+        return statements.getAllFolders.all();
+    },
+
+    getFoldersByOwner(ownerId) {
+        return statements.getFoldersByOwner.all(ownerId);
+    },
+
+    getFolderById(folderId) {
+        return statements.getFolderById.get(folderId);
+    },
+
+    createFolder(name, ownerId, color = '#FFE989') {
+        const result = statements.insertFolder.run(name, color, ownerId);
+        return this.getFolderById(result.lastInsertRowid);
+    },
+
+    updateFolder(folderId, name, color, ownerId) {
+        const result = statements.updateFolder.run(name, color, folderId, ownerId);
+        return result.changes > 0;
+    },
+
+    deleteFolder(folderId, ownerId) {
+        const result = statements.deleteFolder.run(folderId, ownerId);
+        return result.changes > 0;
+    },
+
+    getServersInFolder(folderId) {
+        return statements.getServersByFolder.all(folderId);
+    },
+
+    addServerToFolder(folderId, serverId, serverName, serverIcon = null) {
+        statements.addServerToFolder.run(folderId, serverId, serverName, serverIcon);
+        return { success: true };
+    },
+
+    removeServerFromFolder(folderId, serverId) {
+        const result = statements.removeServerFromFolder.run(folderId, serverId);
+        return result.changes > 0;
+    }
+};
+
+// Message logs database functions
+const logsDB = {
+    getMessageLogs(limit = 50) {
+        return statements.getMessageLogs.all(limit);
+    },
+
+    addMessageLog(serverId, serverName, userId, username, content, channelName = null) {
+        const result = statements.insertMessageLog.run(serverId, serverName, userId, username, content, channelName);
+        return result.lastInsertRowid;
+    }
+};
+
+module.exports = { memeDB, foldersDB, logsDB };
+

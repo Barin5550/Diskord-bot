@@ -977,6 +977,10 @@
         MemeOfDay.init();
         MemeSocket.init();
 
+        // Initialize folders and logs modules
+        FoldersUI.init();
+        MessageLogsUI.init();
+
         Intro.init();
     }
 
@@ -989,6 +993,287 @@
             MemeFeed.loadMemes();
         } else if (viewName === 'meme-of-day') {
             MemeOfDay.load();
+        } else if (viewName === 'folders') {
+            FoldersUI.loadFolders();
+        } else if (viewName === 'message-logs') {
+            MessageLogsUI.loadLogs();
+        }
+    };
+
+    // ===========================
+    // FOLDERS API
+    // ===========================
+    const FoldersAPI = {
+        baseUrl: 'http://localhost:3000/api',
+
+        async getFolders() {
+            const res = await fetch(`${this.baseUrl}/folders`);
+            return res.json();
+        },
+
+        async createFolder(name, color = '#FFE989') {
+            const res = await fetch(`${this.baseUrl}/folders`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, color, ownerId: getUserId() })
+            });
+            return res.json();
+        },
+
+        async updateFolder(folderId, name, color) {
+            const res = await fetch(`${this.baseUrl}/folders/${folderId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, color, ownerId: getUserId() })
+            });
+            return res.json();
+        },
+
+        async deleteFolder(folderId) {
+            const res = await fetch(`${this.baseUrl}/folders/${folderId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ownerId: getUserId() })
+            });
+            return res.json();
+        },
+
+        async getServersInFolder(folderId) {
+            const res = await fetch(`${this.baseUrl}/folders/${folderId}/servers`);
+            return res.json();
+        },
+
+        async addServerToFolder(folderId, serverId, serverName, serverIcon) {
+            const res = await fetch(`${this.baseUrl}/folders/${folderId}/servers`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ serverId, serverName, serverIcon })
+            });
+            return res.json();
+        },
+
+        async removeServerFromFolder(folderId, serverId) {
+            const res = await fetch(`${this.baseUrl}/folders/${folderId}/servers/${serverId}`, {
+                method: 'DELETE'
+            });
+            return res.json();
+        }
+    };
+
+    // ===========================
+    // FOLDERS UI
+    // ===========================
+    const FoldersUI = {
+        currentFolderId: null,
+        folders: [],
+
+        init() {
+            $('#create-folder-btn')?.addEventListener('click', () => this.showCreateModal());
+            $('#folder-back-btn')?.addEventListener('click', () => showView('folders'));
+            $('#add-server-btn')?.addEventListener('click', () => this.showAddServerModal());
+            $('#edit-folder-btn')?.addEventListener('click', () => this.showEditModal());
+            $('#delete-folder-btn')?.addEventListener('click', () => this.deleteCurrentFolder());
+        },
+
+        async loadFolders() {
+            try {
+                this.folders = await FoldersAPI.getFolders();
+                this.renderFolders();
+            } catch (e) {
+                console.error('Failed to load folders:', e);
+            }
+        },
+
+        renderFolders() {
+            const grid = $('#folders-grid');
+            if (!grid) return;
+
+            if (this.folders.length === 0) {
+                grid.innerHTML = `
+                    <div class="folders-empty">
+                        <span class="empty-icon">📁</span>
+                        <p>Нет папок</p>
+                        <p class="text-muted">Создай первую папку для организации серверов</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = this.folders.map(folder => `
+                <div class="folder-card" data-folder-id="${folder.id}" style="--folder-color: ${folder.color}">
+                    <div class="folder-card-icon">📁</div>
+                    <div class="folder-card-name">${folder.name}</div>
+                    <div class="folder-card-count">ID: ${folder.id}</div>
+                </div>
+            `).join('');
+
+            grid.querySelectorAll('.folder-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const folderId = parseInt(card.dataset.folderId);
+                    this.openFolder(folderId);
+                });
+            });
+        },
+
+        async openFolder(folderId) {
+            this.currentFolderId = folderId;
+            const folder = this.folders.find(f => f.id === folderId);
+            if (!folder) return;
+
+            $('#folder-name').textContent = folder.name;
+
+            try {
+                const servers = await FoldersAPI.getServersInFolder(folderId);
+                $('#folder-server-count').textContent = `${servers.length} сервер(ов)`;
+                this.renderServers(servers);
+                showView('folder-details');
+            } catch (e) {
+                console.error('Failed to load folder:', e);
+            }
+        },
+
+        renderServers(servers) {
+            const grid = $('#folder-servers-grid');
+            if (!grid) return;
+
+            if (servers.length === 0) {
+                grid.innerHTML = `
+                    <div class="folders-empty">
+                        <span class="empty-icon">🖥️</span>
+                        <p>Нет серверов</p>
+                        <p class="text-muted">Добавь сервер в эту папку</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = servers.map(server => `
+                <div class="server-card" data-server-id="${server.server_id}">
+                    <div class="server-icon">
+                        ${server.server_icon ? `<img src="${server.server_icon}" alt="">` : '🖥️'}
+                    </div>
+                    <div class="server-info">
+                        <div class="server-name">${server.server_name}</div>
+                        <div class="server-id">${server.server_id}</div>
+                    </div>
+                    <button class="server-remove-btn" title="Удалить">✕</button>
+                </div>
+            `).join('');
+
+            grid.querySelectorAll('.server-remove-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const serverId = btn.closest('.server-card').dataset.serverId;
+                    if (confirm('Удалить сервер из папки?')) {
+                        await FoldersAPI.removeServerFromFolder(this.currentFolderId, serverId);
+                        this.openFolder(this.currentFolderId);
+                    }
+                });
+            });
+        },
+
+        showCreateModal() {
+            const name = prompt('Название папки:');
+            if (name) {
+                FoldersAPI.createFolder(name).then(() => this.loadFolders());
+            }
+        },
+
+        showAddServerModal() {
+            const serverId = prompt('ID сервера:');
+            if (!serverId) return;
+            const serverName = prompt('Название сервера:');
+            if (!serverName) return;
+
+            FoldersAPI.addServerToFolder(this.currentFolderId, serverId, serverName)
+                .then(() => this.openFolder(this.currentFolderId));
+        },
+
+        showEditModal() {
+            const folder = this.folders.find(f => f.id === this.currentFolderId);
+            const name = prompt('Новое название:', folder?.name);
+            if (name) {
+                FoldersAPI.updateFolder(this.currentFolderId, name, folder?.color)
+                    .then(() => {
+                        this.loadFolders();
+                        $('#folder-name').textContent = name;
+                    });
+            }
+        },
+
+        async deleteCurrentFolder() {
+            if (!confirm('Удалить папку и все серверы в ней?')) return;
+            await FoldersAPI.deleteFolder(this.currentFolderId);
+            showView('folders');
+            this.loadFolders();
+        }
+    };
+
+    // ===========================
+    // MESSAGE LOGS API
+    // ===========================
+    const MessageLogsAPI = {
+        baseUrl: 'http://localhost:3000/api',
+
+        async getLogs(limit = 50) {
+            const res = await fetch(`${this.baseUrl}/logs/messages?limit=${limit}`);
+            return res.json();
+        }
+    };
+
+    // ===========================
+    // MESSAGE LOGS UI
+    // ===========================
+    const MessageLogsUI = {
+        logs: [],
+
+        init() {
+            $('#logs-refresh-btn')?.addEventListener('click', () => this.loadLogs());
+        },
+
+        async loadLogs() {
+            try {
+                this.logs = await MessageLogsAPI.getLogs();
+                this.renderLogs();
+            } catch (e) {
+                console.error('Failed to load logs:', e);
+            }
+        },
+
+        renderLogs() {
+            const list = $('#message-logs-list');
+            if (!list) return;
+
+            if (this.logs.length === 0) {
+                list.innerHTML = `
+                    <div class="logs-empty">
+                        <span class="empty-icon">📝</span>
+                        <p>Нет логов</p>
+                        <p class="text-muted">Логи появятся когда будут сообщения на серверах</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const variants = ['variant-red', 'variant-orange', 'variant-green', 'variant-blue'];
+
+            list.innerHTML = this.logs.map((log, i) => {
+                const variant = variants[i % variants.length];
+                const time = new Date(log.created_at).toLocaleString('ru-RU');
+                return `
+                    <div class="log-card ${variant}">
+                        <div class="log-header">
+                            <span class="log-server">${log.server_name || 'Unknown Server'}</span>
+                            <span class="log-time">${time}</span>
+                        </div>
+                        <div class="log-user">
+                            <span class="log-username">${log.username}</span>
+                            <span class="log-user-id">#${log.user_id}</span>
+                        </div>
+                        <div class="log-content">${log.content}</div>
+                    </div>
+                `;
+            }).join('');
         }
     };
 
@@ -998,3 +1283,4 @@
         init();
     }
 })();
+

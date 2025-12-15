@@ -3801,3 +3801,282 @@ tr:hover td {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(255, 217, 0, 0.3);
 }
+
+/* ================================
+   SERVER FOLDERS STYLES
+   ================================ */
+
+.folders-container {
+    padding: var(--space-4);
+}
+
+.folders-actions {
+    margin-bottom: var(--space-4);
+    display: flex;
+    gap: var(--space-3);
+}
+
+.folders-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-4);
+}
+
+.folders-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: var(--space-6);
+    color: var(--color-text-muted);
+}
+
+.empty-icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: var(--space-3);
+    opacity: 0.5;
+}
+
+.folder-card {
+    background: var(--color-bg-card);
+    border: 2px solid var(--color-border);
+    border-radius: var(--border-radius-lg);
+    padding: var(--space-4);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    position: relative;
+    overflow: hidden;
+}
+
+.folder-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--folder-color, var(--color-primary));
+}
+
+.folder-card:hover {
+    border-color: var(--folder-color, var(--color-primary));
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.folder-card-icon {
+    font-size: 2rem;
+    margin-bottom: var(--space-2);
+}
+
+.folder-card-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: var(--space-1);
+}
+
+.folder-card-count {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+/* Folder Details */
+.folder-details-container {
+    padding: var(--space-4);
+}
+
+.folder-actions {
+    display: flex;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.btn-danger {
+    color: #ff5252 !important;
+}
+
+.btn-danger:hover {
+    background: rgba(255, 82, 82, 0.1);
+}
+
+.servers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: var(--space-3);
+}
+
+.server-card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-3);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    transition: all var(--transition-fast);
+}
+
+.server-card:hover {
+    border-color: var(--color-primary);
+}
+
+.server-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--color-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.server-icon img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.server-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.server-name {
+    font-weight: 600;
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.server-id {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-family: 'Courier New', monospace;
+}
+
+.server-remove-btn {
+    padding: var(--space-2);
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+}
+
+.server-remove-btn:hover {
+    color: #ff5252;
+}
+
+/* ================================
+   MESSAGE LOGS STYLES
+   ================================ */
+
+.logs-container {
+    padding: var(--space-4);
+}
+
+.logs-actions {
+    display: flex;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.logs-filter {
+    padding: var(--space-2) var(--space-3);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    color: var(--color-text);
+    min-width: 200px;
+}
+
+.message-logs-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.logs-empty {
+    text-align: center;
+    padding: var(--space-6);
+    color: var(--color-text-muted);
+}
+
+.log-card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: var(--space-4);
+    border-left: 4px solid var(--log-color, var(--color-primary));
+}
+
+.log-card.variant-red {
+    --log-color: #ff5252;
+}
+
+.log-card.variant-orange {
+    --log-color: #ff9100;
+}
+
+.log-card.variant-green {
+    --log-color: #76ff03;
+}
+
+.log-card.variant-blue {
+    --log-color: #448aff;
+}
+
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-2);
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.log-server {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    background: var(--color-bg);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--border-radius-sm);
+}
+
+.log-time {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.log-user {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+}
+
+.log-username {
+    font-weight: 600;
+    color: var(--log-color, var(--color-primary));
+}
+
+.log-user-id {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    font-family: 'Courier New', monospace;
+}
+
+.log-content {
+    background: var(--color-bg);
+    padding: var(--space-3);
+    border-radius: var(--border-radius);
+    color: var(--color-text);
+    font-size: 0.9rem;
+    word-break: break-word;
+}

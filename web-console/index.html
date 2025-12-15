@@ -121,6 +121,10 @@
                     <button class="nav-item" data-view="moderation"><span class="nav-icon">👥</span>
                         Moderation</button>
                     <button class="nav-item" data-view="logs"><span class="nav-icon">📋</span> Logs</button>
+                    <button class="nav-item" data-view="folders"><span class="nav-icon">🗂️</span> Server
+                        Folders</button>
+                    <button class="nav-item" data-view="message-logs"><span class="nav-icon">📜</span> Message
+                        Logs</button>
                 </div>
                 <div class="sidebar-section">
                     <div class="sidebar-title">Развлечение</div>
@@ -627,6 +631,80 @@
                                 <a href="https://github.com/Barin5550/Diskord-bot" class="about-link" target="_blank">
                                     📂 GitHub Repository
                                 </a>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Server Folders -->
+                <section id="view-folders" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">🗂️ Server Folders</h1>
+                        <p class="view-subtitle">Организуй сервера по папкам</p>
+                    </div>
+
+                    <div class="folders-container">
+                        <div class="folders-actions">
+                            <button id="create-folder-btn" class="btn btn-primary">
+                                <span>➕</span> Создать папку
+                            </button>
+                        </div>
+
+                        <div id="folders-grid" class="folders-grid">
+                            <!-- Folders will be injected here -->
+                            <div class="folders-empty">
+                                <span class="empty-icon">📁</span>
+                                <p>Нет папок</p>
+                                <p class="text-muted">Создай первую папку для организации серверов</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Folder Details -->
+                <section id="view-folder-details" class="app-view hidden">
+                    <div class="view-header">
+                        <button id="folder-back-btn" class="btn btn-ghost">← Назад</button>
+                        <h1 class="view-title" id="folder-name">Папка</h1>
+                        <p class="view-subtitle" id="folder-server-count">0 серверов</p>
+                    </div>
+
+                    <div class="folder-details-container">
+                        <div class="folder-actions">
+                            <button id="add-server-btn" class="btn btn-primary">
+                                <span>➕</span> Добавить сервер
+                            </button>
+                            <button id="edit-folder-btn" class="btn btn-secondary">✏️ Редактировать</button>
+                            <button id="delete-folder-btn" class="btn btn-ghost btn-danger">🗑️ Удалить папку</button>
+                        </div>
+
+                        <div id="folder-servers-grid" class="servers-grid">
+                            <!-- Servers will be injected here -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Message Logs -->
+                <section id="view-message-logs" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">📜 Message Logs</h1>
+                        <p class="view-subtitle">История сообщений с серверов</p>
+                    </div>
+
+                    <div class="logs-container">
+                        <div class="logs-actions">
+                            <select id="logs-server-filter" class="logs-filter">
+                                <option value="">Все сервера</option>
+                            </select>
+                            <button id="logs-refresh-btn" class="btn btn-secondary">🔄 Обновить</button>
+                        </div>
+
+                        <div id="message-logs-list" class="message-logs-list">
+                            <!-- Logs will be injected here -->
+                            <div class="logs-empty">
+                                <span class="empty-icon">📝</span>
+                                <p>Нет логов</p>
+                                <p class="text-muted">Логи появятся когда будут сообщения на серверах</p>
                             </div>
                         </div>
                     </div>
