@@ -1004,7 +1004,7 @@
     // FOLDERS API
     // ===========================
     const FoldersAPI = {
-        baseUrl: 'http://localhost:3000/api',
+        baseUrl: 'http://localhost:5000/api',
 
         async getFolders() {
             const res = await fetch(`${this.baseUrl}/folders`);
@@ -1213,7 +1213,7 @@
     // MESSAGE LOGS API
     // ===========================
     const MessageLogsAPI = {
-        baseUrl: 'http://localhost:3000/api',
+        baseUrl: 'http://localhost:5000/api',
 
         async getLogs(limit = 50) {
             const res = await fetch(`${this.baseUrl}/logs/messages?limit=${limit}`);
