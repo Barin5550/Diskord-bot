@@ -307,6 +307,27 @@
                 view.classList.add('glitch-in');
             }
         });
+
+        // Initialize 3D Constructor when switching to it
+        if (viewName === 'constructor' && window.Constructor3D) {
+            setTimeout(() => {
+                window.Constructor3D.init();
+            }, 100);
+        }
+
+        // Initialize Analytics when switching to it
+        if (viewName === 'analytics' && window.Analytics) {
+            setTimeout(() => {
+                window.Analytics.init();
+            }, 100);
+        }
+
+        // Initialize 3D Gallery when switching to it
+        if (viewName === 'gallery3d' && window.Gallery3D) {
+            setTimeout(() => {
+                window.Gallery3D.init();
+            }, 100);
+        }
     }
 
     function initNavigation() {
@@ -317,6 +338,9 @@
             });
         });
     }
+
+    // Export showView to global scope for other modules
+    window.showView = showView;
 
     // ===========================
     // LOGIN / LOGOUT
@@ -398,6 +422,20 @@
             toast.style.transform = 'translateX(100%)';
             setTimeout(() => toast.remove(), 300);
         }, 3000);
+    }
+
+    // Make showToast globally available
+    window.showToast = showToast;
+
+    // Handle "Coming Soon" placeholder buttons
+    function initComingSoonButtons() {
+        $$('.coming-soon').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showToast('🚧 Coming soon!', 'warning');
+            });
+        });
     }
 
     // ===========================
@@ -970,6 +1008,7 @@
         initModals();
         initSidebar();
         initKeyboard();
+        initComingSoonButtons();
 
         // Initialize meme modules
         MemeAPI.init();

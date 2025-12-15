@@ -10,6 +10,8 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;600;700&display=swap"
         rel="stylesheet">
+    <!-- Chart.js for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
@@ -89,7 +91,7 @@
                 and configure in real-time.</p>
             <div class="hero-actions">
                 <button id="btn-access" class="btn btn-primary">Access Console</button>
-                <button class="btn btn-secondary">Learn More</button>
+                <button class="btn btn-secondary coming-soon" title="Скоро будет доступно">Learn More</button>
             </div>
         </main>
     </section>
@@ -118,8 +120,10 @@
                     <div class="sidebar-title">Main</div>
                     <button class="nav-item active" data-view="dashboard"><span class="nav-icon">▣</span>
                         Dashboard</button>
-                    <button class="nav-item" data-view="moderation"><span class="nav-icon">👥</span>
-                        Moderation</button>
+                    <button class="nav-item" data-view="analytics"><span class="nav-icon">📊</span>
+                        Аналитика</button>
+                    <button class="nav-item" data-view="moderation"><span class="nav-icon">🛡️</span>
+                        Модерация</button>
                     <button class="nav-item" data-view="logs"><span class="nav-icon">📋</span> Logs</button>
                     <button class="nav-item" data-view="folders"><span class="nav-icon">🗂️</span> Server
                         Folders</button>
@@ -131,6 +135,16 @@
                     <button class="nav-item" data-view="memes"><span class="nav-icon">🎭</span> Мемы</button>
                     <button class="nav-item" data-view="meme-of-day"><span class="nav-icon">⭐</span> Мем дня</button>
                     <button class="nav-item" data-view="tetris"><span class="nav-icon">🎮</span> Tetris</button>
+                    <button class="nav-item" data-view="snake"><span class="nav-icon">🐍</span> Snake</button>
+                </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-title">Творчество</div>
+                    <button class="nav-item" data-view="constructor"><span class="nav-icon">🔧</span> 3D
+                        Конструктор</button>
+                    <button class="nav-item" data-view="gallery3d"><span class="nav-icon">🖼️</span> 3D
+                        Галерея</button>
+                    <button class="nav-item" data-view="engineer-tutorial"><span class="nav-icon">📖</span> Курс
+                        Инженера</button>
                 </div>
                 <div class="sidebar-section">
                     <div class="sidebar-title">Support</div>
@@ -217,23 +231,68 @@
                                         <td>AdminKay</td>
                                         <td><span class="badge badge-warning">Admin</span></td>
                                         <td><span class="status-dot online"></span>Online</td>
-                                        <td><button class="btn btn-ghost">Edit</button></td>
+                                        <td><button class="btn btn-ghost coming-soon" title="Coming soon">Edit</button>
+                                        </td>
                                     </tr>
                                     <tr>
                                         <td>ModUser</td>
                                         <td><span class="badge badge-success">Mod</span></td>
                                         <td><span class="status-dot busy"></span>Busy</td>
-                                        <td><button class="btn btn-ghost">Edit</button></td>
+                                        <td><button class="btn btn-ghost coming-soon" title="Coming soon">Edit</button>
+                                        </td>
                                     </tr>
                                     <tr>
                                         <td>User99</td>
                                         <td><span class="badge badge-neutral">Member</span></td>
                                         <td><span class="status-dot offline"></span>Offline</td>
-                                        <td><button class="btn btn-ghost" style="color:var(--color-error)">Ban</button>
+                                        <td><button class="btn btn-ghost coming-soon" style="color:var(--color-error)"
+                                                title="Coming soon">Ban</button>
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Analytics -->
+                <section id="view-analytics" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">📊 Аналитика</h1>
+                        <p class="view-subtitle">Статистика активности</p>
+                    </div>
+
+                    <div class="analytics-grid">
+                        <!-- Message Activity Chart -->
+                        <div class="card analytics-card">
+                            <div class="card-title">📈 Активность сообщений (30 дней)</div>
+                            <div class="chart-container">
+                                <canvas id="messages-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Hourly Activity Chart -->
+                        <div class="card analytics-card">
+                            <div class="card-title">🕐 Активность по часам</div>
+                            <div class="chart-container">
+                                <canvas id="hourly-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Top Users -->
+                        <div class="card analytics-card">
+                            <div class="card-title">👥 Топ активных пользователей</div>
+                            <div id="top-users-list" class="top-users-list">
+                                <div class="loading">Загрузка...</div>
+                            </div>
+                        </div>
+
+                        <!-- Server Stats -->
+                        <div class="card analytics-card">
+                            <div class="card-title">🖥️ Статистика серверов</div>
+                            <div id="server-stats" class="server-stats">
+                                <div class="loading">Загрузка...</div>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -709,6 +768,570 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- Snake Game -->
+                <section id="view-snake" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">🐍 Snake</h1>
+                        <p class="view-subtitle">Классическая змейка</p>
+                    </div>
+                    <div class="snake-container">
+                        <canvas id="snake-canvas" width="400" height="400"></canvas>
+                        <div class="snake-controls">
+                            <div class="snake-score">Счёт: <span id="snake-score">0</span></div>
+                            <div class="snake-buttons">
+                                <button id="snake-start" class="btn btn-primary">▶ Старт</button>
+                                <button id="snake-restart" class="btn btn-secondary">🔄 Заново</button>
+                            </div>
+                        </div>
+                        <div class="snake-instructions">
+                            <p>Используй <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> или <kbd>WASD</kbd></p>
+                        </div>
+                    </div>
+                </section>
+                <section id="view-constructor" class="app-view hidden">
+                    <!-- Maya-style Top Menu Bar -->
+                    <div class="maya-menubar">
+                        <div class="maya-menu-left">
+                            <span class="maya-logo">🔧 3D Studio</span>
+                            <div class="maya-menu-dropdown">
+                                <button class="maya-menu-btn">Файл ▾</button>
+                                <div class="maya-dropdown-content">
+                                    <button onclick="Constructor3D.clearScene()">📄 Новая сцена</button>
+                                    <button onclick="document.getElementById('import-file').click()">📂
+                                        Открыть...</button>
+                                    <hr>
+                                    <button onclick="Constructor3D.exportScene()">💾 Сохранить JSON</button>
+                                    <button onclick="Constructor3D.exportGLTF()">📦 Экспорт GLB</button>
+                                    <hr>
+                                    <button onclick="Constructor3D.publishToGallery()">🌐 Опубликовать</button>
+                                </div>
+                            </div>
+                            <div class="maya-menu-dropdown">
+                                <button class="maya-menu-btn">Правка ▾</button>
+                                <div class="maya-dropdown-content">
+                                    <button onclick="Constructor3D.undo()">↩ Отменить <kbd>Ctrl+Z</kbd></button>
+                                    <button onclick="Constructor3D.redo()">↪ Повторить <kbd>Ctrl+Y</kbd></button>
+                                    <hr>
+                                    <button onclick="Constructor3D.duplicateSelected()">📋 Дублировать
+                                        <kbd>Ctrl+D</kbd></button>
+                                    <button onclick="Constructor3D.deleteSelected()">🗑️ Удалить <kbd>Del</kbd></button>
+                                </div>
+                            </div>
+                            <div class="maya-menu-dropdown">
+                                <button class="maya-menu-btn">Создать ▾</button>
+                                <div class="maya-dropdown-content">
+                                    <div class="maya-submenu-title">Полигоны</div>
+                                    <button onclick="Constructor3D.addCube()">◼ Куб</button>
+                                    <button onclick="Constructor3D.addSphere()">● Сфера</button>
+                                    <button onclick="Constructor3D.addCylinder()">⬤ Цилиндр</button>
+                                    <button onclick="Constructor3D.addCone()">▲ Конус</button>
+                                    <button onclick="Constructor3D.addTorus()">◎ Тор</button>
+                                    <button onclick="Constructor3D.addPlane()">▭ Плоскость</button>
+                                    <hr>
+                                    <div class="maya-submenu-title">Платоновы тела</div>
+                                    <button onclick="Constructor3D.addPyramid()">△ Пирамида</button>
+                                    <button onclick="Constructor3D.addIcosahedron()">⬡ Икосаэдр</button>
+                                    <button onclick="Constructor3D.addOctahedron()">◇ Октаэдр</button>
+                                    <button onclick="Constructor3D.addTetrahedron()">▽ Тетраэдр</button>
+                                    <hr>
+                                    <div class="maya-submenu-title">Специальные</div>
+                                    <button onclick="Constructor3D.addRing()">○ Кольцо</button>
+                                    <button onclick="Constructor3D.addCapsule()">💊 Капсула</button>
+                                    <button onclick="Constructor3D.addTorusKnot()">∞ Узел</button>
+                                </div>
+                            </div>
+                            <div class="maya-menu-dropdown">
+                                <button class="maya-menu-btn">Вид ▾</button>
+                                <div class="maya-dropdown-content">
+                                    <button onclick="Constructor3D.resetCamera()">🏠 Сброс камеры</button>
+                                    <button onclick="Constructor3D.focusSelected()">🎯 Фокус на объект
+                                        <kbd>F</kbd></button>
+                                    <hr>
+                                    <button onclick="Constructor3D.toggleGrid()">⊞ Сетка</button>
+                                    <button onclick="Constructor3D.toggleAxes()">📐 Оси</button>
+                                </div>
+                            </div>
+                            <div class="maya-menu-dropdown">
+                                <button class="maya-menu-btn">Справка ▾</button>
+                                <div class="maya-dropdown-content">
+                                    <button onclick="Constructor3D.showTutorial()">📖 Курс Инженера</button>
+                                    <button onclick="Constructor3D.showShortcuts()">⌨️ Горячие клавиши</button>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="file" id="import-file" accept=".json,.glb,.gltf" hidden>
+                    </div>
+
+                    <!-- Maya-style Main Toolbar -->
+                    <div class="maya-toolbar">
+                        <div class="maya-toolbar-section">
+                            <span class="maya-toolbar-label">Инструменты:</span>
+                            <button id="tool-select" class="maya-tool active" title="Выделение (Q)">
+                                <span>🖱️</span>
+                            </button>
+                            <button id="tool-move" class="maya-tool" title="Перемещение (W)">
+                                <span>↔️</span>
+                            </button>
+                            <button id="tool-rotate" class="maya-tool" title="Вращение (E)">
+                                <span>🔄</span>
+                            </button>
+                            <button id="tool-scale" class="maya-tool" title="Масштаб (R)">
+                                <span>⤢</span>
+                            </button>
+                        </div>
+                        <div class="maya-toolbar-divider"></div>
+                        <div class="maya-toolbar-section">
+                            <span class="maya-toolbar-label">Быстрое создание:</span>
+                            <button id="add-cube" class="maya-tool" title="Куб">◼</button>
+                            <button id="add-sphere" class="maya-tool" title="Сфера">●</button>
+                            <button id="add-cylinder" class="maya-tool" title="Цилиндр">⬤</button>
+                            <button id="add-cone" class="maya-tool" title="Конус">▲</button>
+                            <button id="add-torus" class="maya-tool" title="Тор">◎</button>
+                            <button id="add-plane" class="maya-tool" title="Плоскость">▭</button>
+                        </div>
+                        <div class="maya-toolbar-divider"></div>
+                        <div class="maya-toolbar-section">
+                            <button id="undo-btn" class="maya-tool" title="Отменить (Ctrl+Z)">↩</button>
+                            <button id="redo-btn" class="maya-tool" title="Повторить (Ctrl+Y)">↪</button>
+                        </div>
+                        <div class="maya-toolbar-divider"></div>
+                        <div class="maya-toolbar-section">
+                            <button id="export-gltf" class="maya-tool accent"
+                                title="Скачать 3D модель (.glb)">📦</button>
+                            <button id="publish-gallery" class="maya-tool accent"
+                                title="Опубликовать в галерею">🌐</button>
+                        </div>
+                    </div>
+
+                    <!-- Main Content Area -->
+                    <div class="maya-workspace">
+                        <!-- Left Panel: Outliner -->
+                        <div class="maya-panel maya-outliner">
+                            <div class="maya-panel-header">
+                                <span>📋 Outliner</span>
+                                <button class="maya-panel-btn" title="Свернуть">—</button>
+                            </div>
+                            <div class="maya-panel-content">
+                                <div class="maya-scene-tree">
+                                    <div class="maya-tree-item scene">
+                                        <span class="tree-icon">🌍</span>
+                                        <span>Сцена</span>
+                                    </div>
+                                    <div id="constructor-objects-list" class="maya-objects-list">
+                                        <div class="maya-empty-message">
+                                            <p>Нет объектов</p>
+                                            <small>Создай → Полигоны</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Center: Viewport -->
+                        <div class="maya-viewport-container">
+                            <div class="maya-viewport-header">
+                                <span>Перспектива</span>
+                                <div class="maya-viewport-controls">
+                                    <button id="btn-wireframe" class="maya-vp-btn" title="Каркас">⬚</button>
+                                    <button id="btn-shading" class="maya-vp-btn active" title="Затенение">⬛</button>
+                                </div>
+                            </div>
+                            <div id="constructor-canvas" class="maya-viewport"></div>
+                            <div class="maya-viewport-nav">
+                                <div class="maya-nav-hint">
+                                    <span>🖱️ЛКМ</span> Выбор
+                                    <span>🖱️ПКМ</span> Вращение
+                                    <span>🖱️СКМ</span> Перемещение
+                                    <span>🔘Колёсико</span> Зум
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Panel: Channel Box / Attribute Editor -->
+                        <div class="maya-panel maya-channel-box">
+                            <div class="maya-panel-header">
+                                <span>⚙️ Channel Box</span>
+                            </div>
+                            <div class="maya-panel-content" id="constructor-properties">
+                                <div class="maya-no-selection">
+                                    <div class="maya-no-sel-icon">🎯</div>
+                                    <p>Объект не выбран</p>
+                                    <small>Кликни на объект или создай новый</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status Bar -->
+                    <div class="maya-statusbar">
+                        <div class="maya-status-left">
+                            <span id="status-mode">Режим: Выделение</span>
+                            <span class="maya-status-divider">|</span>
+                            <span id="status-objects">Объектов: 0</span>
+                        </div>
+                        <div class="maya-status-center" id="status-message">
+                            Готов к работе
+                        </div>
+                        <div class="maya-status-right">
+                            <span id="status-selection">Выбрано: —</span>
+                        </div>
+                    </div>
+
+                    <!-- Shortcuts Modal -->
+                    <div id="shortcuts-modal" class="modal hidden">
+                        <div class="modal-backdrop"
+                            onclick="document.getElementById('shortcuts-modal').classList.add('hidden')"></div>
+                        <div class="modal-content">
+                            <button class="modal-close"
+                                onclick="document.getElementById('shortcuts-modal').classList.add('hidden')">×</button>
+                            <h2>⌨️ Горячие клавиши (как в Maya)</h2>
+                            <div class="shortcuts-grid">
+                                <div class="shortcut-group">
+                                    <h4>Инструменты</h4>
+                                    <div class="shortcut-item"><kbd>Q</kbd> Выделение</div>
+                                    <div class="shortcut-item"><kbd>W</kbd> Перемещение</div>
+                                    <div class="shortcut-item"><kbd>E</kbd> Вращение</div>
+                                    <div class="shortcut-item"><kbd>R</kbd> Масштаб</div>
+                                </div>
+                                <div class="shortcut-group">
+                                    <h4>Навигация</h4>
+                                    <div class="shortcut-item"><kbd>F</kbd> Фокус на объект</div>
+                                    <div class="shortcut-item"><kbd>Home</kbd> Сброс камеры</div>
+                                    <div class="shortcut-item"><kbd>ПКМ + Drag</kbd> Вращение вида</div>
+                                    <div class="shortcut-item"><kbd>СКМ + Drag</kbd> Панорама</div>
+                                </div>
+                                <div class="shortcut-group">
+                                    <h4>Редактирование</h4>
+                                    <div class="shortcut-item"><kbd>Ctrl+Z</kbd> Отменить</div>
+                                    <div class="shortcut-item"><kbd>Ctrl+Y</kbd> Повторить</div>
+                                    <div class="shortcut-item"><kbd>Ctrl+D</kbd> Дублировать</div>
+                                    <div class="shortcut-item"><kbd>Delete</kbd> Удалить</div>
+                                </div>
+                                <div class="shortcut-group">
+                                    <h4>Отображение</h4>
+                                    <div class="shortcut-item"><kbd>4</kbd> Каркас</div>
+                                    <div class="shortcut-item"><kbd>5</kbd> Затенение</div>
+                                    <div class="shortcut-item"><kbd>G</kbd> Скрыть сетку</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- 3D Gallery -->
+                <section id="view-gallery3d" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">🖼️ 3D Галерея</h1>
+                        <p class="view-subtitle">Делись своими 3D творениями</p>
+                    </div>
+
+                    <div class="gallery-layout">
+                        <!-- Gallery Grid -->
+                        <div class="gallery-main">
+                            <div class="gallery-header">
+                                <div class="gallery-tabs">
+                                    <button class="gallery-tab active" data-filter="all">Все</button>
+                                    <button class="gallery-tab" data-filter="popular">Популярные</button>
+                                    <button class="gallery-tab" data-filter="new">Новые</button>
+                                    <button class="gallery-tab" data-filter="my">Мои работы</button>
+                                </div>
+                                <button class="btn btn-primary" onclick="Gallery3D.openUploadModal()">
+                                    ➕ Загрузить модель
+                                </button>
+                            </div>
+
+                            <div id="gallery-grid" class="gallery-grid">
+                                <!-- Models will be inserted here -->
+                                <div class="gallery-loading">
+                                    <div class="spinner"></div>
+                                    <p>Загрузка моделей...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Gallery Chat -->
+                        <div class="gallery-sidebar">
+                            <div class="panel-header">💬 Чат галереи</div>
+                            <div id="gallery-chat" class="gallery-chat">
+                                <div class="chat-message system">
+                                    <span>Добро пожаловать в 3D галерею!</span>
+                                </div>
+                            </div>
+                            <div class="gallery-chat-input">
+                                <input type="text" id="gallery-chat-message" placeholder="Напиши сообщение...">
+                                <button onclick="Gallery3D.sendMessage()">📤</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Model Preview Modal -->
+                <div id="model-preview-modal" class="modal hidden">
+                    <div class="modal-backdrop" onclick="Gallery3D.closePreview()"></div>
+                    <div class="modal-content modal-large">
+                        <button class="modal-close" onclick="Gallery3D.closePreview()">×</button>
+                        <div class="model-preview-container">
+                            <div id="model-preview-canvas" class="model-preview-canvas"></div>
+                            <div class="model-preview-info">
+                                <h2 id="model-preview-title">Название модели</h2>
+                                <p id="model-preview-author">Автор: <span>Username</span></p>
+                                <p id="model-preview-date">Опубликовано: <span>01.01.2024</span></p>
+                                <div class="model-preview-stats">
+                                    <span>👁️ <span id="model-views">0</span></span>
+                                    <span>❤️ <span id="model-likes">0</span></span>
+                                    <span>💬 <span id="model-comments">0</span></span>
+                                </div>
+                                <div class="model-preview-actions">
+                                    <button class="btn btn-primary" onclick="Gallery3D.likeModel()">❤️ Нравится</button>
+                                    <button class="btn btn-secondary" onclick="Gallery3D.downloadModel()">📦
+                                        Скачать</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="model-comments-section">
+                            <h3>💬 Комментарии</h3>
+                            <div id="model-comments-list" class="model-comments-list"></div>
+                            <div class="model-comment-input">
+                                <input type="text" id="model-comment-text" placeholder="Оставь комментарий...">
+                                <button onclick="Gallery3D.addComment()">Отправить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upload Modal -->
+                <div id="upload-modal" class="modal hidden">
+                    <div class="modal-backdrop" onclick="Gallery3D.closeUploadModal()"></div>
+                    <div class="modal-content">
+                        <button class="modal-close" onclick="Gallery3D.closeUploadModal()">×</button>
+                        <h2>📤 Загрузить 3D модель</h2>
+                        <div class="upload-form">
+                            <div class="form-group">
+                                <label>Название модели</label>
+                                <input type="text" id="upload-title" placeholder="Моя крутая модель">
+                            </div>
+                            <div class="form-group">
+                                <label>Описание</label>
+                                <textarea id="upload-description" placeholder="Опиши свою работу..."></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Файл модели (.glb, .json)</label>
+                                <div class="file-upload-zone" id="file-upload-zone">
+                                    <span>📁</span>
+                                    <p>Перетащи файл сюда или кликни для выбора</p>
+                                    <input type="file" id="upload-file" accept=".glb,.json" hidden>
+                                </div>
+                                <small id="upload-filename"></small>
+                            </div>
+                            <div class="form-actions">
+                                <button class="btn btn-ghost" onclick="Gallery3D.closeUploadModal()">Отмена</button>
+                                <button class="btn btn-primary" onclick="Gallery3D.uploadModel()">Опубликовать</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Engineer Tutorial -->
+                <section id="view-engineer-tutorial" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">📖 Курс Молодого Инженера</h1>
+                        <p class="view-subtitle">Учебное пособие по 3D моделированию</p>
+                    </div>
+
+                    <div class="tutorial-container">
+                        <!-- Intro -->
+                        <div class="tutorial-section">
+                            <h2>🎓 Добро пожаловать!</h2>
+                            <p>Этот интерактивный курс познакомит тебя с основами 3D моделирования и проектирования.
+                                Ты научишься создавать трёхмерные объекты, комбинировать их и настраивать материалы.</p>
+                        </div>
+
+                        <!-- Lesson 1 -->
+                        <div class="tutorial-section card">
+                            <h3>📘 Урок 1: Базовые примитивы</h3>
+                            <div class="tutorial-content">
+                                <p>Все сложные 3D модели строятся из простых геометрических тел — <b>примитивов</b>:</p>
+                                <div class="primitives-grid">
+                                    <div class="primitive-item">
+                                        <span class="primitive-icon">◼</span>
+                                        <div class="primitive-info">
+                                            <b>Куб</b>
+                                            <small>6 граней, 8 вершин</small>
+                                        </div>
+                                    </div>
+                                    <div class="primitive-item">
+                                        <span class="primitive-icon">●</span>
+                                        <div class="primitive-info">
+                                            <b>Сфера</b>
+                                            <small>Идеальный шар</small>
+                                        </div>
+                                    </div>
+                                    <div class="primitive-item">
+                                        <span class="primitive-icon">⬤</span>
+                                        <div class="primitive-info">
+                                            <b>Цилиндр</b>
+                                            <small>Труба с крышками</small>
+                                        </div>
+                                    </div>
+                                    <div class="primitive-item">
+                                        <span class="primitive-icon">▲</span>
+                                        <div class="primitive-info">
+                                            <b>Конус</b>
+                                            <small>Сужается к точке</small>
+                                        </div>
+                                    </div>
+                                    <div class="primitive-item">
+                                        <span class="primitive-icon">◎</span>
+                                        <div class="primitive-info">
+                                            <b>Тор</b>
+                                            <small>Форма бублика</small>
+                                        </div>
+                                    </div>
+                                    <div class="primitive-item">
+                                        <span class="primitive-icon">▭</span>
+                                        <div class="primitive-info">
+                                            <b>Плоскость</b>
+                                            <small>2D поверхность</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Lesson 2 -->
+                        <div class="tutorial-section card">
+                            <h3>📗 Урок 2: Платоновы тела</h3>
+                            <div class="tutorial-content">
+                                <p>Древние греки открыли 5 правильных многогранников, где все грани одинаковые:</p>
+                                <div class="primitives-grid">
+                                    <div class="primitive-item">
+                                        <span class="primitive-icon">▽</span>
+                                        <div class="primitive-info">
+                                            <b>Тетраэдр</b>
+                                            <small>4 треугольника</small>
+                                        </div>
+                                    </div>
+                                    <div class="primitive-item">
+                                        <span class="primitive-icon">◇</span>
+                                        <div class="primitive-info">
+                                            <b>Октаэдр</b>
+                                            <small>8 треугольников</small>
+                                        </div>
+                                    </div>
+                                    <div class="primitive-item">
+                                        <span class="primitive-icon">⬡</span>
+                                        <div class="primitive-info">
+                                            <b>Икосаэдр</b>
+                                            <small>20 треугольников</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="tip">💡 <b>Факт:</b> Куб и додекаэдр тоже платоновы тела!</p>
+                            </div>
+                        </div>
+
+                        <!-- Lesson 3 -->
+                        <div class="tutorial-section card">
+                            <h3>📙 Урок 3: Трансформации</h3>
+                            <div class="tutorial-content">
+                                <p>Любой объект можно изменять тремя способами:</p>
+                                <div class="transform-grid">
+                                    <div class="transform-item">
+                                        <kbd>G</kbd>
+                                        <b>Перемещение</b>
+                                        <small>Двигай объект по осям X, Y, Z</small>
+                                    </div>
+                                    <div class="transform-item">
+                                        <kbd>R</kbd>
+                                        <b>Вращение</b>
+                                        <small>Поворачивай вокруг осей</small>
+                                    </div>
+                                    <div class="transform-item">
+                                        <kbd>S</kbd>
+                                        <b>Масштаб</b>
+                                        <small>Увеличивай или уменьшай</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Lesson 4 -->
+                        <div class="tutorial-section card">
+                            <h3>📕 Урок 4: Материалы</h3>
+                            <div class="tutorial-content">
+                                <p>Материал определяет, как объект отражает свет:</p>
+                                <ul class="material-list">
+                                    <li><b>Цвет</b> — базовый оттенок поверхности</li>
+                                    <li><b>Металличность</b> — насколько объект похож на металл (0-1)</li>
+                                    <li><b>Шероховатость</b> — гладкость поверхности (0 = зеркало, 1 = матовый)</li>
+                                    <li><b>Прозрачность</b> — видно ли сквозь объект</li>
+                                    <li><b>Wireframe</b> — показывать только рёбра</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Lesson 5 -->
+                        <div class="tutorial-section card">
+                            <h3>📓 Урок 5: Практика</h3>
+                            <div class="tutorial-content">
+                                <p>Попробуй создать эти объекты:</p>
+                                <div class="practice-grid">
+                                    <div class="practice-item">
+                                        <div class="practice-icon">🏠</div>
+                                        <b>Домик</b>
+                                        <small>Куб + Пирамида</small>
+                                    </div>
+                                    <div class="practice-item">
+                                        <div class="practice-icon">❄️</div>
+                                        <b>Снеговик</b>
+                                        <small>3 сферы + конус</small>
+                                    </div>
+                                    <div class="practice-item">
+                                        <div class="practice-icon">🚀</div>
+                                        <b>Ракета</b>
+                                        <small>Цилиндр + Конус</small>
+                                    </div>
+                                    <div class="practice-item">
+                                        <div class="practice-icon">🎄</div>
+                                        <b>Ёлка</b>
+                                        <small>3 конуса + цилиндр</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tips -->
+                        <div class="tutorial-section card">
+                            <h3>💡 Полезные советы</h3>
+                            <div class="tips-list">
+                                <div class="tip-item">
+                                    <span class="tip-icon">🖱️</span>
+                                    <p>Зажми ПКМ и двигай мышью для вращения камеры</p>
+                                </div>
+                                <div class="tip-item">
+                                    <span class="tip-icon">🔍</span>
+                                    <p>Используй колёсико мыши для приближения/отдаления</p>
+                                </div>
+                                <div class="tip-item">
+                                    <span class="tip-icon">📋</span>
+                                    <p><kbd>Ctrl+D</kbd> быстро дублирует выбранный объект</p>
+                                </div>
+                                <div class="tip-item">
+                                    <span class="tip-icon">💾</span>
+                                    <p>Экспортируй сцену в JSON для сохранения работы</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tutorial-footer">
+                            <button onclick="showView('constructor')" class="btn btn-primary">
+                                🚀 Перейти к Конструктору
+                            </button>
+                        </div>
+                    </div>
+                </section>
             </main>
         </div>
     </div>
@@ -738,8 +1361,19 @@
         </div>
     </div>
 
+    <!-- Three.js for 3D Constructor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
     <script src="app.js"></script>
     <script src="tetris.js"></script>
+    <script src="snake.js"></script>
+    <script src="constructor3d.js"></script>
+    <script src="analytics.js"></script>
+    <script src="gallery3d.js"></script>
 </body>
 
 </html>
