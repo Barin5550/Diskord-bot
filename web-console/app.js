@@ -7,10 +7,93 @@
     'use strict';
 
     // ===========================
+    // SETTINGS (from localStorage)
+    // ===========================
+    const SETTINGS_KEY = 'botconsole_settings';
+    const defaultSettings = {
+        skipIntro: false,
+        animations: true,
+        sound: false
+    };
+
+    let settings = { ...defaultSettings };
+
+    function loadSettings() {
+        try {
+            const saved = localStorage.getItem(SETTINGS_KEY);
+            if (saved) {
+                settings = { ...defaultSettings, ...JSON.parse(saved) };
+            }
+        } catch (e) {
+            console.error('Failed to load settings:', e);
+        }
+    }
+
+    function saveSettings() {
+        try {
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        } catch (e) {
+            console.error('Failed to save settings:', e);
+        }
+    }
+
+    function initSettings() {
+        loadSettings();
+
+        // Apply settings to UI
+        const skipIntroEl = document.getElementById('setting-skip-intro');
+        const animationsEl = document.getElementById('setting-animations');
+        const soundEl = document.getElementById('setting-sound');
+        const clearCacheBtn = document.getElementById('btn-clear-cache');
+
+        if (skipIntroEl) {
+            skipIntroEl.checked = settings.skipIntro;
+            skipIntroEl.addEventListener('change', () => {
+                settings.skipIntro = skipIntroEl.checked;
+                saveSettings();
+                showToast(settings.skipIntro ? 'Интро отключено' : 'Интро включено', 'info');
+            });
+        }
+
+        if (animationsEl) {
+            animationsEl.checked = settings.animations;
+            animationsEl.addEventListener('change', () => {
+                settings.animations = animationsEl.checked;
+                saveSettings();
+                document.body.classList.toggle('no-animations', !settings.animations);
+                showToast(settings.animations ? 'Анимации включены' : 'Анимации отключены', 'info');
+            });
+            // Apply on load
+            if (!settings.animations) {
+                document.body.classList.add('no-animations');
+            }
+        }
+
+        if (soundEl) {
+            soundEl.checked = settings.sound;
+            soundEl.addEventListener('change', () => {
+                settings.sound = soundEl.checked;
+                saveSettings();
+                showToast(settings.sound ? 'Звук включён' : 'Звук отключён', 'info');
+            });
+        }
+
+        if (clearCacheBtn) {
+            clearCacheBtn.addEventListener('click', () => {
+                if (confirm('Очистить все сохранённые данные? Это действие нельзя отменить.')) {
+                    localStorage.clear();
+                    showToast('Кэш очищен!', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                }
+            });
+        }
+    }
+
+    // ===========================
     // CONFIG
     // ===========================
     const CONFIG = {
-        SKIP_INTRO: false,
+        get SKIP_INTRO() { return settings.skipIntro; },
         INTRO_CHAOS_DURATION: 4000,  // 4 seconds pressure buildup
         INTRO_EYES_DURATION: 400,    // 0.4 seconds - SUPER FAST!
         INTRO_HELLO_DURATION: 2000,  // 2 seconds for typing
@@ -1001,6 +1084,7 @@
     // INITIALIZATION
     // ===========================
     function init() {
+        loadSettings();  // Load settings first
         initElements();
         Transitions.init();
         initNavigation();
@@ -1009,6 +1093,7 @@
         initSidebar();
         initKeyboard();
         initComingSoonButtons();
+        initSettings();  // Setup settings UI
 
         // Initialize meme modules
         MemeAPI.init();

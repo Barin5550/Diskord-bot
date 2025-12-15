@@ -792,6 +792,44 @@ tr:hover td {
     margin-bottom: var(--space-5);
 }
 
+/* Settings Modal Styles */
+.settings-modal {
+    max-width: 420px;
+}
+
+.settings-section {
+    margin-bottom: var(--space-5);
+}
+
+.settings-section-title {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-accent);
+    margin-bottom: var(--space-3);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.setting-description {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-top: 2px;
+}
+
+.settings-footer {
+    margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+    text-align: center;
+}
+
+.settings-version {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
 /* ===========================
    TOAST NOTIFICATIONS
    =========================== */

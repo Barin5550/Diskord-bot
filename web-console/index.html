@@ -1352,16 +1352,62 @@
 
     <!-- Settings Modal -->
     <div id="modal-settings" class="modal-overlay hidden">
-        <div class="modal-card">
+        <div class="modal-card settings-modal">
             <button class="modal-close btn btn-ghost">×</button>
-            <h2 class="modal-title">Settings</h2>
-            <div class="settings-list">
-                <div class="setting-row">
-                    <div class="setting-label">Sound Effects</div><label class="toggle"><input type="checkbox"
-                            id="toggle-sound"><span class="toggle-slider"></span></label>
+            <h2 class="modal-title">⚙️ Настройки</h2>
+
+            <div class="settings-section">
+                <div class="settings-section-title">Интерфейс</div>
+                <div class="settings-list">
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">🚀 Пропустить интро</div>
+                            <div class="setting-description">Отключить анимацию загрузки</div>
+                        </div>
+                        <label class="toggle"><input type="checkbox" id="setting-skip-intro"><span
+                                class="toggle-slider"></span></label>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">✨ Анимации</div>
+                            <div class="setting-description">TRON эффекты и переходы</div>
+                        </div>
+                        <label class="toggle"><input type="checkbox" id="setting-animations" checked><span
+                                class="toggle-slider"></span></label>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">🔊 Звуковые эффекты</div>
+                            <div class="setting-description">Звуки уведомлений и игр</div>
+                        </div>
+                        <label class="toggle"><input type="checkbox" id="setting-sound"><span
+                                class="toggle-slider"></span></label>
+                    </div>
                 </div>
             </div>
-            <button id="btn-logout" class="btn btn-secondary" style="width:100%;margin-top:20px;">Log Out</button>
+
+            <div class="settings-section">
+                <div class="settings-section-title">Данные</div>
+                <div class="settings-list">
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">🗑️ Очистить кэш</div>
+                            <div class="setting-description">Сбросить сохранённые данные</div>
+                        </div>
+                        <button class="btn btn-ghost" id="btn-clear-cache"
+                            style="color:var(--color-error)">Очистить</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-section-title">Аккаунт</div>
+                <button id="btn-logout" class="btn btn-secondary" style="width:100%">🚪 Выйти</button>
+            </div>
+
+            <div class="settings-footer">
+                <span class="settings-version">v2.0.0 • Made with 💛</span>
+            </div>
         </div>
     </div>
 
