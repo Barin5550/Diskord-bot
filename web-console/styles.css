@@ -6424,6 +6424,68 @@ select:focus {
     }
 }
 
+/* ===========================
+   LOGS PAGES
+   =========================== */
+.logs-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+}
+
+.logs-count {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+.logs-pagination {
+    margin-top: var(--space-4);
+    text-align: center;
+}
+
+.no-data {
+    text-align: center;
+    padding: var(--space-8) !important;
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+/* Action type badges */
+.action-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.action-badge.create {
+    background: rgba(74, 222, 128, 0.2);
+    color: var(--color-success);
+}
+
+.action-badge.update {
+    background: rgba(251, 191, 36, 0.2);
+    color: var(--color-warning);
+}
+
+.action-badge.delete {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--color-error);
+}
+
+.action-badge.login {
+    background: rgba(96, 165, 250, 0.2);
+    color: #60a5fa;
+}
+
+.action-badge.default {
+    background: var(--color-accent-dim);
+    color: var(--color-accent);
+}
+
 /* Reduced Motion Preference */
 @media (prefers-reduced-motion: reduce) {
 

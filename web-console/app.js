@@ -542,6 +542,186 @@
     }
 
     // ===========================
+    // LOGS UI MODULE
+    // ===========================
+    const LogsUI = {
+        messagesBody: null,
+        actionsBody: null,
+        messagesCursor: null,
+        actionsCursor: null,
+        messagesHasMore: false,
+        actionsHasMore: false,
+
+        init() {
+            this.messagesBody = $('#messages-logs-body');
+            this.actionsBody = $('#actions-logs-body');
+
+            // Refresh buttons
+            $('#logs-messages-refresh')?.addEventListener('click', () => this.loadMessages(true));
+            $('#logs-actions-refresh')?.addEventListener('click', () => this.loadActions(true));
+
+            // Load more buttons
+            $('#logs-messages-more')?.addEventListener('click', () => this.loadMessages(false));
+            $('#logs-actions-more')?.addEventListener('click', () => this.loadActions(false));
+        },
+
+        async loadMessages(reset = false) {
+            if (reset) {
+                this.messagesCursor = null;
+                if (this.messagesBody) {
+                    this.messagesBody.innerHTML = '<tr><td colspan="5" class="no-data">Загрузка...</td></tr>';
+                }
+            }
+
+            try {
+                let url = `${API_BASE}/api/logs/messages?limit=30`;
+                if (this.messagesCursor) {
+                    url += `&cursor=${this.messagesCursor}`;
+                }
+
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (!data.success) {
+                    throw new Error(data.error);
+                }
+
+                this.messagesCursor = data.nextCursor;
+                this.messagesHasMore = data.hasMore;
+
+                if (reset && this.messagesBody) {
+                    this.messagesBody.innerHTML = '';
+                }
+
+                if (data.logs.length === 0 && reset) {
+                    this.messagesBody.innerHTML = '<tr><td colspan="5" class="no-data">Нет сообщений</td></tr>';
+                } else {
+                    data.logs.forEach(log => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${this.formatDate(log.created_at)}</td>
+                            <td>${this.escape(log.server_name || '—')}</td>
+                            <td>${this.escape(log.channel_name || '—')}</td>
+                            <td>${this.escape(log.username)}</td>
+                            <td>${this.escape(log.content)}</td>
+                        `;
+                        this.messagesBody.appendChild(tr);
+                    });
+                }
+
+                // Update count
+                const countEl = $('#logs-messages-count');
+                if (countEl) {
+                    countEl.textContent = `Всего: ${data.total}`;
+                }
+
+                // Show/hide load more
+                const moreBtn = $('#logs-messages-more');
+                if (moreBtn) {
+                    moreBtn.style.display = this.messagesHasMore ? 'inline-block' : 'none';
+                }
+            } catch (error) {
+                console.error('Failed to load message logs:', error);
+                if (this.messagesBody) {
+                    this.messagesBody.innerHTML = '<tr><td colspan="5" class="no-data">Ошибка загрузки</td></tr>';
+                }
+            }
+        },
+
+        async loadActions(reset = false) {
+            if (reset) {
+                this.actionsCursor = null;
+                if (this.actionsBody) {
+                    this.actionsBody.innerHTML = '<tr><td colspan="5" class="no-data">Загрузка...</td></tr>';
+                }
+            }
+
+            try {
+                let url = `${API_BASE}/api/logs/actions?limit=30`;
+                if (this.actionsCursor) {
+                    url += `&cursor=${this.actionsCursor}`;
+                }
+
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (!data.success) {
+                    throw new Error(data.error);
+                }
+
+                this.actionsCursor = data.nextCursor;
+                this.actionsHasMore = data.hasMore;
+
+                if (reset && this.actionsBody) {
+                    this.actionsBody.innerHTML = '';
+                }
+
+                if (data.logs.length === 0 && reset) {
+                    this.actionsBody.innerHTML = '<tr><td colspan="5" class="no-data">Нет действий</td></tr>';
+                } else {
+                    data.logs.forEach(log => {
+                        const tr = document.createElement('tr');
+                        const badgeClass = this.getActionBadgeClass(log.action_type);
+                        tr.innerHTML = `
+                            <td>${this.formatDate(log.created_at)}</td>
+                            <td><span class="action-badge ${badgeClass}">${this.escape(log.action_type)}</span></td>
+                            <td>${this.escape(log.actor_name)}</td>
+                            <td>${log.target_name ? this.escape(log.target_name) : '—'}</td>
+                            <td>${log.details ? this.escape(log.details) : '—'}</td>
+                        `;
+                        this.actionsBody.appendChild(tr);
+                    });
+                }
+
+                // Update count
+                const countEl = $('#logs-actions-count');
+                if (countEl) {
+                    countEl.textContent = `Всего: ${data.total}`;
+                }
+
+                // Show/hide load more
+                const moreBtn = $('#logs-actions-more');
+                if (moreBtn) {
+                    moreBtn.style.display = this.actionsHasMore ? 'inline-block' : 'none';
+                }
+            } catch (error) {
+                console.error('Failed to load action logs:', error);
+                if (this.actionsBody) {
+                    this.actionsBody.innerHTML = '<tr><td colspan="5" class="no-data">Ошибка загрузки</td></tr>';
+                }
+            }
+        },
+
+        getActionBadgeClass(actionType) {
+            const type = (actionType || '').toLowerCase();
+            if (type.includes('create') || type.includes('add')) return 'create';
+            if (type.includes('update') || type.includes('edit')) return 'update';
+            if (type.includes('delete') || type.includes('remove')) return 'delete';
+            if (type.includes('login') || type.includes('auth')) return 'login';
+            return 'default';
+        },
+
+        formatDate(dateStr) {
+            if (!dateStr) return '—';
+            const date = new Date(dateStr);
+            return date.toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        },
+
+        escape(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+    };
+
+    // ===========================
     // MEME API
     // ===========================
     const API_BASE = window.location.origin;
@@ -1103,7 +1283,7 @@
 
         // Initialize folders and logs modules
         FoldersUI.init();
-        MessageLogsUI.init();
+        LogsUI.init();
 
         Intro.init();
     }
@@ -1119,8 +1299,10 @@
             MemeOfDay.load();
         } else if (viewName === 'folders') {
             FoldersUI.loadFolders();
-        } else if (viewName === 'message-logs') {
-            MessageLogsUI.loadLogs();
+        } else if (viewName === 'logs-messages') {
+            LogsUI.loadMessages(true);
+        } else if (viewName === 'logs-actions') {
+            LogsUI.loadActions(true);
         }
     };
 

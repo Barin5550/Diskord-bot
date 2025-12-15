@@ -1,301 +1,259 @@
 /**
  * Database module for meme storage
- * Uses SQLite for persistent local storage
+ * Uses sql.js (SQLite in JavaScript, no native compilation needed)
  */
 
-const Database = require('better-sqlite3');
+const initSqlJs = require('sql.js');
+const fs = require('fs');
 const path = require('path');
 
 const dbPath = path.join(__dirname, 'memes.db');
-const db = new Database(dbPath);
 
-// Initialize database schema
-db.exec(`
-    CREATE TABLE IF NOT EXISTS memes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        image_path TEXT NOT NULL,
-        caption TEXT,
-        user_id TEXT NOT NULL,
-        like_count INTEGER DEFAULT 0,
-        dislike_count INTEGER DEFAULT 0,
-        leader_since DATETIME,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
+let db = null;
+let isInitialized = false;
 
-    CREATE TABLE IF NOT EXISTS votes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        meme_id INTEGER NOT NULL,
-        user_id TEXT NOT NULL,
-        vote_type TEXT CHECK(vote_type IN ('like', 'dislike')),
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (meme_id) REFERENCES memes(id) ON DELETE CASCADE,
-        UNIQUE(meme_id, user_id)
-    );
+// Save database to file
+function saveDatabase() {
+    if (db) {
+        const data = db.export();
+        const buffer = Buffer.from(data);
+        fs.writeFileSync(dbPath, buffer);
+    }
+}
 
-    CREATE TABLE IF NOT EXISTS folders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        color TEXT DEFAULT '#FFE989',
-        owner_id TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
+// Initialize database
+async function initDatabase() {
+    if (isInitialized) return db;
 
-    CREATE TABLE IF NOT EXISTS server_folders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        folder_id INTEGER NOT NULL,
-        server_id TEXT NOT NULL,
-        server_name TEXT NOT NULL,
-        server_icon TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE,
-        UNIQUE(folder_id, server_id)
-    );
+    const SQL = await initSqlJs();
 
-    CREATE TABLE IF NOT EXISTS message_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        server_id TEXT,
-        server_name TEXT,
-        user_id TEXT NOT NULL,
-        username TEXT NOT NULL,
-        content TEXT NOT NULL,
-        channel_name TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
+    // Try to load existing database
+    if (fs.existsSync(dbPath)) {
+        const fileBuffer = fs.readFileSync(dbPath);
+        db = new SQL.Database(fileBuffer);
+    } else {
+        db = new SQL.Database();
+    }
 
-    CREATE INDEX IF NOT EXISTS idx_memes_like_count ON memes(like_count DESC);
-    CREATE INDEX IF NOT EXISTS idx_memes_created_at ON memes(created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_votes_meme_user ON votes(meme_id, user_id);
-    CREATE INDEX IF NOT EXISTS idx_folders_owner ON folders(owner_id);
-    CREATE INDEX IF NOT EXISTS idx_server_folders_folder ON server_folders(folder_id);
-    CREATE INDEX IF NOT EXISTS idx_message_logs_created ON message_logs(created_at DESC);
-`);
+    // Initialize schema
+    db.run(`
+        CREATE TABLE IF NOT EXISTS memes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            image_path TEXT NOT NULL,
+            caption TEXT,
+            user_id TEXT NOT NULL,
+            like_count INTEGER DEFAULT 0,
+            dislike_count INTEGER DEFAULT 0,
+            leader_since DATETIME,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
 
-// Prepared statements for better performance
-const statements = {
-    // Memes
-    getAllMemes: db.prepare(`
-        SELECT m.*, 
-               (SELECT vote_type FROM votes WHERE meme_id = m.id AND user_id = ?) as user_vote
-        FROM memes m
-        ORDER BY created_at DESC
-    `),
+        CREATE TABLE IF NOT EXISTS votes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            meme_id INTEGER NOT NULL,
+            user_id TEXT NOT NULL,
+            vote_type TEXT CHECK(vote_type IN ('like', 'dislike')),
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (meme_id) REFERENCES memes(id) ON DELETE CASCADE,
+            UNIQUE(meme_id, user_id)
+        );
 
-    getMemesByPopularity: db.prepare(`
-        SELECT m.*, 
-               (SELECT vote_type FROM votes WHERE meme_id = m.id AND user_id = ?) as user_vote
-        FROM memes m
-        ORDER BY like_count DESC, created_at DESC
-    `),
+        CREATE TABLE IF NOT EXISTS folders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            color TEXT DEFAULT '#FFE989',
+            owner_id TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
 
-    getMemeById: db.prepare(`
-        SELECT m.*, 
-               (SELECT vote_type FROM votes WHERE meme_id = m.id AND user_id = ?) as user_vote
-        FROM memes m
-        WHERE m.id = ?
-    `),
+        CREATE TABLE IF NOT EXISTS server_folders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            folder_id INTEGER NOT NULL,
+            server_id TEXT NOT NULL,
+            server_name TEXT NOT NULL,
+            server_icon TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE,
+            UNIQUE(folder_id, server_id)
+        );
 
-    insertMeme: db.prepare(`
-        INSERT INTO memes (image_path, caption, user_id)
-        VALUES (?, ?, ?)
-    `),
+        CREATE TABLE IF NOT EXISTS message_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            server_id TEXT,
+            server_name TEXT,
+            user_id TEXT NOT NULL,
+            username TEXT NOT NULL,
+            content TEXT NOT NULL,
+            channel_name TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
 
-    getMemeOfDay: db.prepare(`
-        SELECT m.*, 
-               (SELECT vote_type FROM votes WHERE meme_id = m.id AND user_id = ?) as user_vote
-        FROM memes m
-        WHERE like_count > 0
-        ORDER BY like_count DESC, leader_since ASC NULLS LAST, created_at ASC
-        LIMIT 1
-    `),
+        CREATE TABLE IF NOT EXISTS action_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            action_type TEXT NOT NULL,
+            actor_id TEXT NOT NULL,
+            actor_name TEXT NOT NULL,
+            target_type TEXT,
+            target_id TEXT,
+            target_name TEXT,
+            details TEXT,
+            server_id TEXT,
+            server_name TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    `);
 
-    getTopMemes: db.prepare(`
-        SELECT m.*, 
-               (SELECT vote_type FROM votes WHERE meme_id = m.id AND user_id = ?) as user_vote
-        FROM memes m
-        WHERE like_count > 0
-        ORDER BY like_count DESC, created_at DESC
-        LIMIT ?
-    `),
+    // Create indexes
+    db.run(`CREATE INDEX IF NOT EXISTS idx_memes_like_count ON memes(like_count DESC)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_memes_created_at ON memes(created_at DESC)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_votes_meme_user ON votes(meme_id, user_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_folders_owner ON folders(owner_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_server_folders_folder ON server_folders(folder_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_message_logs_created ON message_logs(created_at DESC)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_action_logs_created ON action_logs(created_at DESC)`);
 
-    updateLeaderSince: db.prepare(`
-        UPDATE memes SET leader_since = CURRENT_TIMESTAMP WHERE id = ?
-    `),
+    saveDatabase();
+    isInitialized = true;
+    console.log('Database initialized successfully');
 
-    clearLeaderSince: db.prepare(`
-        UPDATE memes SET leader_since = NULL WHERE id != ?
-    `),
+    return db;
+}
 
-    // Votes
-    getVote: db.prepare(`
-        SELECT * FROM votes WHERE meme_id = ? AND user_id = ?
-    `),
+// Helper to run query and return results as array of objects
+function queryAll(sql, params = []) {
+    const stmt = db.prepare(sql);
+    stmt.bind(params);
+    const results = [];
+    while (stmt.step()) {
+        results.push(stmt.getAsObject());
+    }
+    stmt.free();
+    return results;
+}
 
-    insertVote: db.prepare(`
-        INSERT INTO votes (meme_id, user_id, vote_type)
-        VALUES (?, ?, ?)
-    `),
+// Helper to run query and return first result
+function queryOne(sql, params = []) {
+    const results = queryAll(sql, params);
+    return results.length > 0 ? results[0] : null;
+}
 
-    updateVote: db.prepare(`
-        UPDATE votes SET vote_type = ? WHERE meme_id = ? AND user_id = ?
-    `),
-
-    deleteVote: db.prepare(`
-        DELETE FROM votes WHERE meme_id = ? AND user_id = ?
-    `),
-
-    incrementLikes: db.prepare(`
-        UPDATE memes SET like_count = like_count + 1 WHERE id = ?
-    `),
-
-    decrementLikes: db.prepare(`
-        UPDATE memes SET like_count = like_count - 1 WHERE id = ?
-    `),
-
-    incrementDislikes: db.prepare(`
-        UPDATE memes SET dislike_count = dislike_count + 1 WHERE id = ?
-    `),
-
-    decrementDislikes: db.prepare(`
-        UPDATE memes SET dislike_count = dislike_count - 1 WHERE id = ?
-    `),
-
-    deleteMeme: db.prepare(`
-        DELETE FROM memes WHERE id = ? AND user_id = ?
-    `),
-
-    getMemeImagePath: db.prepare(`
-        SELECT image_path FROM memes WHERE id = ?
-    `),
-
-    // Folders
-    getAllFolders: db.prepare(`
-        SELECT * FROM folders ORDER BY created_at DESC
-    `),
-
-    getFoldersByOwner: db.prepare(`
-        SELECT * FROM folders WHERE owner_id = ? ORDER BY created_at DESC
-    `),
-
-    getFolderById: db.prepare(`
-        SELECT * FROM folders WHERE id = ?
-    `),
-
-    insertFolder: db.prepare(`
-        INSERT INTO folders (name, color, owner_id) VALUES (?, ?, ?)
-    `),
-
-    updateFolder: db.prepare(`
-        UPDATE folders SET name = ?, color = ? WHERE id = ? AND owner_id = ?
-    `),
-
-    deleteFolder: db.prepare(`
-        DELETE FROM folders WHERE id = ? AND owner_id = ?
-    `),
-
-    // Server Folders
-    getServersByFolder: db.prepare(`
-        SELECT * FROM server_folders WHERE folder_id = ? ORDER BY created_at DESC
-    `),
-
-    addServerToFolder: db.prepare(`
-        INSERT OR IGNORE INTO server_folders (folder_id, server_id, server_name, server_icon) VALUES (?, ?, ?, ?)
-    `),
-
-    removeServerFromFolder: db.prepare(`
-        DELETE FROM server_folders WHERE folder_id = ? AND server_id = ?
-    `),
-
-    // Message Logs
-    getMessageLogs: db.prepare(`
-        SELECT * FROM message_logs ORDER BY created_at DESC LIMIT ?
-    `),
-
-    insertMessageLog: db.prepare(`
-        INSERT INTO message_logs (server_id, server_name, user_id, username, content, channel_name) VALUES (?, ?, ?, ?, ?, ?)
-    `)
-};
+// Helper to run insert/update/delete
+function execute(sql, params = []) {
+    db.run(sql, params);
+    saveDatabase();
+    return {
+        lastInsertRowid: db.exec("SELECT last_insert_rowid()")[0]?.values[0][0] || 0,
+        changes: db.getRowsModified()
+    };
+}
 
 // Database functions
 const memeDB = {
     getAllMemes(userId, sortBy = 'new') {
-        if (sortBy === 'popular') {
-            return statements.getMemesByPopularity.all(userId);
-        }
-        return statements.getAllMemes.all(userId);
+        const orderBy = sortBy === 'popular'
+            ? 'like_count DESC, created_at DESC'
+            : 'created_at DESC';
+        return queryAll(`
+            SELECT m.*, 
+                   (SELECT vote_type FROM votes WHERE meme_id = m.id AND user_id = ?) as user_vote
+            FROM memes m
+            ORDER BY ${orderBy}
+        `, [userId]);
     },
 
     getMemeById(memeId, userId) {
-        return statements.getMemeById.get(userId, memeId);
+        return queryOne(`
+            SELECT m.*, 
+                   (SELECT vote_type FROM votes WHERE meme_id = m.id AND user_id = ?) as user_vote
+            FROM memes m
+            WHERE m.id = ?
+        `, [userId, memeId]);
     },
 
     createMeme(imagePath, caption, userId) {
-        const result = statements.insertMeme.run(imagePath, caption, userId);
+        const result = execute(
+            `INSERT INTO memes (image_path, caption, user_id) VALUES (?, ?, ?)`,
+            [imagePath, caption, userId]
+        );
         return this.getMemeById(result.lastInsertRowid, userId);
     },
 
     getMemeOfDay(userId) {
-        return statements.getMemeOfDay.get(userId);
+        return queryOne(`
+            SELECT m.*, 
+                   (SELECT vote_type FROM votes WHERE meme_id = m.id AND user_id = ?) as user_vote
+            FROM memes m
+            WHERE like_count > 0
+            ORDER BY like_count DESC, leader_since ASC NULLS LAST, created_at ASC
+            LIMIT 1
+        `, [userId]);
     },
 
     getTopMemes(userId, limit = 5) {
-        return statements.getTopMemes.all(userId, limit);
+        return queryAll(`
+            SELECT m.*, 
+                   (SELECT vote_type FROM votes WHERE meme_id = m.id AND user_id = ?) as user_vote
+            FROM memes m
+            WHERE like_count > 0
+            ORDER BY like_count DESC, created_at DESC
+            LIMIT ?
+        `, [userId, limit]);
     },
 
     vote(memeId, userId, voteType) {
-        const existingVote = statements.getVote.get(memeId, userId);
+        const existingVote = queryOne(
+            `SELECT * FROM votes WHERE meme_id = ? AND user_id = ?`,
+            [memeId, userId]
+        );
 
-        const transaction = db.transaction(() => {
-            if (existingVote) {
-                if (existingVote.vote_type === voteType) {
-                    // Remove vote (toggle off)
-                    statements.deleteVote.run(memeId, userId);
-                    if (voteType === 'like') {
-                        statements.decrementLikes.run(memeId);
-                    } else {
-                        statements.decrementDislikes.run(memeId);
-                    }
-                    return { action: 'removed', voteType: null };
-                } else {
-                    // Change vote
-                    statements.updateVote.run(voteType, memeId, userId);
-                    if (voteType === 'like') {
-                        statements.incrementLikes.run(memeId);
-                        statements.decrementDislikes.run(memeId);
-                    } else {
-                        statements.decrementLikes.run(memeId);
-                        statements.incrementDislikes.run(memeId);
-                    }
-                    return { action: 'changed', voteType };
-                }
-            } else {
-                // New vote
-                statements.insertVote.run(memeId, userId, voteType);
+        if (existingVote) {
+            if (existingVote.vote_type === voteType) {
+                // Remove vote (toggle off)
+                execute(`DELETE FROM votes WHERE meme_id = ? AND user_id = ?`, [memeId, userId]);
                 if (voteType === 'like') {
-                    statements.incrementLikes.run(memeId);
+                    execute(`UPDATE memes SET like_count = like_count - 1 WHERE id = ?`, [memeId]);
                 } else {
-                    statements.incrementDislikes.run(memeId);
+                    execute(`UPDATE memes SET dislike_count = dislike_count - 1 WHERE id = ?`, [memeId]);
                 }
-                return { action: 'added', voteType };
+                return { action: 'removed', voteType: null };
+            } else {
+                // Change vote
+                execute(`UPDATE votes SET vote_type = ? WHERE meme_id = ? AND user_id = ?`, [voteType, memeId, userId]);
+                if (voteType === 'like') {
+                    execute(`UPDATE memes SET like_count = like_count + 1 WHERE id = ?`, [memeId]);
+                    execute(`UPDATE memes SET dislike_count = dislike_count - 1 WHERE id = ?`, [memeId]);
+                } else {
+                    execute(`UPDATE memes SET like_count = like_count - 1 WHERE id = ?`, [memeId]);
+                    execute(`UPDATE memes SET dislike_count = dislike_count + 1 WHERE id = ?`, [memeId]);
+                }
+                return { action: 'changed', voteType };
             }
-        });
-
-        return transaction();
+        } else {
+            // New vote
+            execute(`INSERT INTO votes (meme_id, user_id, vote_type) VALUES (?, ?, ?)`, [memeId, userId, voteType]);
+            if (voteType === 'like') {
+                execute(`UPDATE memes SET like_count = like_count + 1 WHERE id = ?`, [memeId]);
+            } else {
+                execute(`UPDATE memes SET dislike_count = dislike_count + 1 WHERE id = ?`, [memeId]);
+            }
+            return { action: 'added', voteType };
+        }
     },
 
     updateMemeOfDayLeader() {
-        const currentLeader = statements.getMemeOfDay.get('');
+        const currentLeader = this.getMemeOfDay('');
         if (currentLeader && !currentLeader.leader_since) {
-            statements.updateLeaderSince.run(currentLeader.id);
-            statements.clearLeaderSince.run(currentLeader.id);
+            execute(`UPDATE memes SET leader_since = CURRENT_TIMESTAMP WHERE id = ?`, [currentLeader.id]);
+            execute(`UPDATE memes SET leader_since = NULL WHERE id != ?`, [currentLeader.id]);
         }
         return currentLeader;
     },
 
     deleteMeme(memeId, userId) {
-        const meme = statements.getMemeImagePath.get(memeId);
+        const meme = queryOne(`SELECT image_path FROM memes WHERE id = ?`, [memeId]);
         if (!meme) return { success: false, error: 'Meme not found' };
 
-        const result = statements.deleteMeme.run(memeId, userId);
+        const result = execute(`DELETE FROM memes WHERE id = ? AND user_id = ?`, [memeId, userId]);
         if (result.changes === 0) {
             return { success: false, error: 'Not authorized to delete this meme' };
         }
@@ -306,58 +264,162 @@ const memeDB = {
 // Folders database functions
 const foldersDB = {
     getAllFolders() {
-        return statements.getAllFolders.all();
+        return queryAll(`SELECT * FROM folders ORDER BY created_at DESC`);
     },
 
     getFoldersByOwner(ownerId) {
-        return statements.getFoldersByOwner.all(ownerId);
+        return queryAll(`SELECT * FROM folders WHERE owner_id = ? ORDER BY created_at DESC`, [ownerId]);
     },
 
     getFolderById(folderId) {
-        return statements.getFolderById.get(folderId);
+        return queryOne(`SELECT * FROM folders WHERE id = ?`, [folderId]);
     },
 
     createFolder(name, ownerId, color = '#FFE989') {
-        const result = statements.insertFolder.run(name, color, ownerId);
+        const result = execute(`INSERT INTO folders (name, color, owner_id) VALUES (?, ?, ?)`, [name, color, ownerId]);
         return this.getFolderById(result.lastInsertRowid);
     },
 
     updateFolder(folderId, name, color, ownerId) {
-        const result = statements.updateFolder.run(name, color, folderId, ownerId);
+        const result = execute(
+            `UPDATE folders SET name = ?, color = ? WHERE id = ? AND owner_id = ?`,
+            [name, color, folderId, ownerId]
+        );
         return result.changes > 0;
     },
 
     deleteFolder(folderId, ownerId) {
-        const result = statements.deleteFolder.run(folderId, ownerId);
+        const result = execute(`DELETE FROM folders WHERE id = ? AND owner_id = ?`, [folderId, ownerId]);
         return result.changes > 0;
     },
 
     getServersInFolder(folderId) {
-        return statements.getServersByFolder.all(folderId);
+        return queryAll(`SELECT * FROM server_folders WHERE folder_id = ? ORDER BY created_at DESC`, [folderId]);
     },
 
     addServerToFolder(folderId, serverId, serverName, serverIcon = null) {
-        statements.addServerToFolder.run(folderId, serverId, serverName, serverIcon);
+        execute(
+            `INSERT OR IGNORE INTO server_folders (folder_id, server_id, server_name, server_icon) VALUES (?, ?, ?, ?)`,
+            [folderId, serverId, serverName, serverIcon]
+        );
         return { success: true };
     },
 
     removeServerFromFolder(folderId, serverId) {
-        const result = statements.removeServerFromFolder.run(folderId, serverId);
+        const result = execute(`DELETE FROM server_folders WHERE folder_id = ? AND server_id = ?`, [folderId, serverId]);
         return result.changes > 0;
     }
 };
 
 // Message logs database functions
 const logsDB = {
-    getMessageLogs(limit = 50) {
-        return statements.getMessageLogs.all(limit);
+    // Get message logs with pagination
+    getMessageLogs(limit = 50, cursor = null, serverId = null) {
+        let sql = `SELECT * FROM message_logs`;
+        const params = [];
+        const conditions = [];
+
+        if (cursor) {
+            conditions.push('id < ?');
+            params.push(cursor);
+        }
+        if (serverId) {
+            conditions.push('server_id = ?');
+            params.push(serverId);
+        }
+
+        if (conditions.length > 0) {
+            sql += ' WHERE ' + conditions.join(' AND ');
+        }
+
+        sql += ' ORDER BY created_at DESC LIMIT ?';
+        params.push(limit);
+
+        const logs = queryAll(sql, params);
+        const nextCursor = logs.length === limit && logs.length > 0 ? logs[logs.length - 1].id : null;
+
+        return { logs, nextCursor, hasMore: nextCursor !== null };
     },
 
     addMessageLog(serverId, serverName, userId, username, content, channelName = null) {
-        const result = statements.insertMessageLog.run(serverId, serverName, userId, username, content, channelName);
+        const result = execute(
+            `INSERT INTO message_logs (server_id, server_name, user_id, username, content, channel_name) VALUES (?, ?, ?, ?, ?, ?)`,
+            [serverId, serverName, userId, username, content, channelName]
+        );
         return result.lastInsertRowid;
+    },
+
+    // Get action logs with pagination
+    getActionLogs(limit = 50, cursor = null, serverId = null, actionType = null) {
+        let sql = `SELECT * FROM action_logs`;
+        const params = [];
+        const conditions = [];
+
+        if (cursor) {
+            conditions.push('id < ?');
+            params.push(cursor);
+        }
+        if (serverId) {
+            conditions.push('server_id = ?');
+            params.push(serverId);
+        }
+        if (actionType) {
+            conditions.push('action_type = ?');
+            params.push(actionType);
+        }
+
+        if (conditions.length > 0) {
+            sql += ' WHERE ' + conditions.join(' AND ');
+        }
+
+        sql += ' ORDER BY created_at DESC LIMIT ?';
+        params.push(limit);
+
+        const logs = queryAll(sql, params);
+        const nextCursor = logs.length === limit && logs.length > 0 ? logs[logs.length - 1].id : null;
+
+        return { logs, nextCursor, hasMore: nextCursor !== null };
+    },
+
+    addActionLog(actionType, actorId, actorName, targetType = null, targetId = null, targetName = null, details = null, serverId = null, serverName = null) {
+        const result = execute(
+            `INSERT INTO action_logs (action_type, actor_id, actor_name, target_type, target_id, target_name, details, server_id, server_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [actionType, actorId, actorName, targetType, targetId, targetName, details, serverId, serverName]
+        );
+        return result.lastInsertRowid;
+    },
+
+    // Get logs count
+    getMessageLogsCount(serverId = null) {
+        const sql = serverId
+            ? 'SELECT COUNT(*) as count FROM message_logs WHERE server_id = ?'
+            : 'SELECT COUNT(*) as count FROM message_logs';
+        const result = queryOne(sql, serverId ? [serverId] : []);
+        return result ? result.count : 0;
+    },
+
+    getActionLogsCount(serverId = null, actionType = null) {
+        let sql = 'SELECT COUNT(*) as count FROM action_logs';
+        const params = [];
+        const conditions = [];
+
+        if (serverId) {
+            conditions.push('server_id = ?');
+            params.push(serverId);
+        }
+        if (actionType) {
+            conditions.push('action_type = ?');
+            params.push(actionType);
+        }
+
+        if (conditions.length > 0) {
+            sql += ' WHERE ' + conditions.join(' AND ');
+        }
+
+        const result = queryOne(sql, params);
+        return result ? result.count : 0;
     }
 };
 
-module.exports = { memeDB, foldersDB, logsDB };
+module.exports = { initDatabase, memeDB, foldersDB, logsDB };
 

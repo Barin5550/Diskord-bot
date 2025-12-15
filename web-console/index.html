@@ -162,11 +162,12 @@
                         Аналитика</button>
                     <button class="nav-item" data-view="moderation"><span class="nav-icon">🛡️</span>
                         Модерация</button>
-                    <button class="nav-item" data-view="logs"><span class="nav-icon">📋</span> Logs</button>
+                    <button class="nav-item" data-view="logs-messages"><span class="nav-icon">💬</span> Логи
+                        сообщений</button>
+                    <button class="nav-item" data-view="logs-actions"><span class="nav-icon">⚡</span> Логи
+                        действий</button>
                     <button class="nav-item" data-view="folders"><span class="nav-icon">🗂️</span> Server
                         Folders</button>
-                    <button class="nav-item" data-view="message-logs"><span class="nav-icon">📜</span> Message
-                        Logs</button>
                 </div>
                 <div class="sidebar-section">
                     <div class="sidebar-title">Развлечение</div>
@@ -289,6 +290,78 @@
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Logs Messages -->
+                <section id="view-logs-messages" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">💬 Логи сообщений</h1>
+                        <p class="view-subtitle">История сообщений из чатов</p>
+                    </div>
+                    <div class="logs-controls">
+                        <button id="logs-messages-refresh" class="btn btn-secondary">🔄 Обновить</button>
+                        <span id="logs-messages-count" class="logs-count"></span>
+                    </div>
+                    <div class="card">
+                        <div class="table-container">
+                            <table id="messages-table">
+                                <thead>
+                                    <tr>
+                                        <th>Время</th>
+                                        <th>Сервер</th>
+                                        <th>Канал</th>
+                                        <th>Пользователь</th>
+                                        <th>Сообщение</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="messages-logs-body">
+                                    <tr>
+                                        <td colspan="5" class="no-data">Загрузка...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="logs-pagination">
+                            <button id="logs-messages-more" class="btn btn-secondary" style="display:none">Загрузить
+                                ещё</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Logs Actions -->
+                <section id="view-logs-actions" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">⚡ Логи действий</h1>
+                        <p class="view-subtitle">Административные действия и события</p>
+                    </div>
+                    <div class="logs-controls">
+                        <button id="logs-actions-refresh" class="btn btn-secondary">🔄 Обновить</button>
+                        <span id="logs-actions-count" class="logs-count"></span>
+                    </div>
+                    <div class="card">
+                        <div class="table-container">
+                            <table id="actions-table">
+                                <thead>
+                                    <tr>
+                                        <th>Время</th>
+                                        <th>Действие</th>
+                                        <th>Исполнитель</th>
+                                        <th>Цель</th>
+                                        <th>Детали</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="actions-logs-body">
+                                    <tr>
+                                        <td colspan="5" class="no-data">Загрузка...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="logs-pagination">
+                            <button id="logs-actions-more" class="btn btn-secondary" style="display:none">Загрузить
+                                ещё</button>
                         </div>
                     </div>
                 </section>

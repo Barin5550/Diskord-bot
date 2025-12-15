@@ -10,7 +10,7 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const WebSocket = require('ws');
-const { memeDB, foldersDB, logsDB } = require('./database');
+const { initDatabase, memeDB, foldersDB, logsDB } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -349,15 +349,20 @@ app.delete('/api/folders/:folderId/servers/:serverId', (req, res) => {
 // MESSAGE LOGS API
 // ===========================
 
-// Get message logs
+// Get message logs with pagination
 app.get('/api/logs/messages', (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 50;
-        const logs = logsDB.getMessageLogs(limit);
-        res.json(logs);
+        const cursor = req.query.cursor ? parseInt(req.query.cursor) : null;
+        const serverId = req.query.serverId || null;
+
+        const result = logsDB.getMessageLogs(limit, cursor, serverId);
+        const total = logsDB.getMessageLogsCount(serverId);
+
+        res.json({ success: true, ...result, total });
     } catch (error) {
         console.error('Error getting message logs:', error);
-        res.status(500).json({ error: 'Failed to get message logs' });
+        res.status(500).json({ success: false, error: 'Failed to get message logs' });
     }
 });
 
@@ -374,6 +379,40 @@ app.post('/api/logs/messages', (req, res) => {
     } catch (error) {
         console.error('Error adding message log:', error);
         res.status(500).json({ error: 'Failed to add message log' });
+    }
+});
+
+// Get action logs with pagination
+app.get('/api/logs/actions', (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 50;
+        const cursor = req.query.cursor ? parseInt(req.query.cursor) : null;
+        const serverId = req.query.serverId || null;
+        const actionType = req.query.actionType || null;
+
+        const result = logsDB.getActionLogs(limit, cursor, serverId, actionType);
+        const total = logsDB.getActionLogsCount(serverId, actionType);
+
+        res.json({ success: true, ...result, total });
+    } catch (error) {
+        console.error('Error getting action logs:', error);
+        res.status(500).json({ success: false, error: 'Failed to get action logs' });
+    }
+});
+
+// Add action log
+app.post('/api/logs/actions', (req, res) => {
+    try {
+        const { actionType, actorId, actorName, targetType, targetId, targetName, details, serverId, serverName } = req.body;
+        if (!actionType || !actorId || !actorName) {
+            return res.status(400).json({ error: 'actionType, actorId, and actorName are required' });
+        }
+        const logId = logsDB.addActionLog(actionType, actorId, actorName, targetType, targetId, targetName, details, serverId, serverName);
+        broadcast('action_logged', { id: logId, ...req.body, created_at: new Date().toISOString() });
+        res.json({ success: true, id: logId });
+    } catch (error) {
+        console.error('Error adding action log:', error);
+        res.status(500).json({ error: 'Failed to add action log' });
     }
 });
 
@@ -394,19 +433,33 @@ app.use((error, req, res, next) => {
 });
 
 // Start server
-server.listen(PORT, () => {
-    console.log(`
+async function startServer() {
+    try {
+        // Initialize database first
+        await initDatabase();
+        console.log('Database initialized');
+
+        server.listen(PORT, () => {
+            console.log(`
 ╔════════════════════════════════════════╗
 ║       MEME SERVER STARTED              ║
 ╠════════════════════════════════════════╣
 ║  HTTP: http://localhost:${PORT}          ║
 ║  WebSocket: ws://localhost:${PORT}       ║
 ╚════════════════════════════════════════╝
-    `);
+            `);
 
-    // Initialize current meme of day
-    const initialLeader = memeDB.getMemeOfDay('');
-    currentMemeOfDayId = initialLeader ? initialLeader.id : null;
-});
+            // Initialize current meme of day
+            const initialLeader = memeDB.getMemeOfDay('');
+            currentMemeOfDayId = initialLeader ? initialLeader.id : null;
+        });
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+}
+
+startServer();
 
 module.exports = { app, server, wss };
+
