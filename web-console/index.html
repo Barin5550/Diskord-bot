@@ -222,24 +222,53 @@
                             <div class="stat-value">99.9%</div>
                         </div>
                         <div class="card" style="grid-column:span 2;">
-                            <div class="card-title">Bot Settings</div>
+                            <div class="card-title">
+                                Bot Settings
+                                <span id="bot-save-status" class="save-status"></span>
+                            </div>
                             <div class="settings-list">
                                 <div class="setting-row">
                                     <div>
+                                        <div class="setting-label">Bot Name</div>
+                                    </div>
+                                    <input type="text" id="bot-name" class="input-field" placeholder="MyBot"
+                                        style="width:150px">
+                                </div>
+                                <div class="setting-row">
+                                    <div>
+                                        <div class="setting-label">Command Prefix</div>
+                                    </div>
+                                    <input type="text" id="bot-command-prefix" class="input-field" placeholder="!"
+                                        style="width:60px">
+                                </div>
+                                <div class="setting-row">
+                                    <div>
+                                        <div class="setting-label">Server Logs</div>
+                                    </div><label class="toggle"><input type="checkbox" id="bot-server-logs"><span
+                                            class="toggle-slider"></span></label>
+                                </div>
+                                <div class="setting-row">
+                                    <div>
+                                        <div class="setting-label">Big Actions</div>
+                                    </div><label class="toggle"><input type="checkbox" id="bot-big-actions"><span
+                                            class="toggle-slider"></span></label>
+                                </div>
+                                <div class="setting-row">
+                                    <div>
                                         <div class="setting-label">Auto Moderation</div>
-                                    </div><label class="toggle"><input type="checkbox" checked><span
+                                    </div><label class="toggle"><input type="checkbox" id="bot-auto-moderation"><span
                                             class="toggle-slider"></span></label>
                                 </div>
                                 <div class="setting-row">
                                     <div>
                                         <div class="setting-label">Activity Logging</div>
-                                    </div><label class="toggle"><input type="checkbox" checked><span
+                                    </div><label class="toggle"><input type="checkbox" id="bot-activity-logging"><span
                                             class="toggle-slider"></span></label>
                                 </div>
                                 <div class="setting-row">
                                     <div>
                                         <div class="setting-label">Welcome Messages</div>
-                                    </div><label class="toggle"><input type="checkbox"><span
+                                    </div><label class="toggle"><input type="checkbox" id="bot-welcome-messages"><span
                                             class="toggle-slider"></span></label>
                                 </div>
                             </div>

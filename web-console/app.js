@@ -542,6 +542,103 @@
     }
 
     // ===========================
+    // BOT SETTINGS UI MODULE
+    // ===========================
+    const BotSettingsUI = {
+        botId: 1,
+        debounceTimer: null,
+        statusEl: null,
+
+        async init() {
+            this.statusEl = $('#bot-save-status');
+            await this.load();
+            this.bindEvents();
+        },
+
+        async load() {
+            try {
+                const res = await fetch(`${API_BASE}/api/bots/${this.botId}`);
+                const data = await res.json();
+
+                if (data.success && data.bot) {
+                    const bot = data.bot;
+                    const nameEl = $('#bot-name');
+                    const prefixEl = $('#bot-command-prefix');
+
+                    if (nameEl) nameEl.value = bot.name || '';
+                    if (prefixEl) prefixEl.value = bot.commandPrefix || '!';
+
+                    this.setCheckbox('bot-server-logs', bot.serverLogs);
+                    this.setCheckbox('bot-big-actions', bot.bigActions);
+                    this.setCheckbox('bot-auto-moderation', bot.autoModeration);
+                    this.setCheckbox('bot-activity-logging', bot.activityLogging);
+                    this.setCheckbox('bot-welcome-messages', bot.welcomeMessages);
+                }
+            } catch (error) {
+                console.error('Failed to load bot settings:', error);
+            }
+        },
+
+        setCheckbox(id, value) {
+            const el = $(`#${id}`);
+            if (el) el.checked = !!value;
+        },
+
+        bindEvents() {
+            // Text inputs with debounce
+            $('#bot-name')?.addEventListener('input', () => this.scheduleUpdate('name', $('#bot-name').value));
+            $('#bot-command-prefix')?.addEventListener('input', () => this.scheduleUpdate('commandPrefix', $('#bot-command-prefix').value));
+
+            // Checkboxes - immediate save
+            $('#bot-server-logs')?.addEventListener('change', (e) => this.updateField('serverLogs', e.target.checked));
+            $('#bot-big-actions')?.addEventListener('change', (e) => this.updateField('bigActions', e.target.checked));
+            $('#bot-auto-moderation')?.addEventListener('change', (e) => this.updateField('autoModeration', e.target.checked));
+            $('#bot-activity-logging')?.addEventListener('change', (e) => this.updateField('activityLogging', e.target.checked));
+            $('#bot-welcome-messages')?.addEventListener('change', (e) => this.updateField('welcomeMessages', e.target.checked));
+        },
+
+        scheduleUpdate(field, value) {
+            this.setStatus('saving', '💾 Saving...');
+            clearTimeout(this.debounceTimer);
+            this.debounceTimer = setTimeout(() => {
+                this.updateField(field, value);
+            }, 1000);
+        },
+
+        async updateField(field, value) {
+            this.setStatus('saving', '💾 Saving...');
+
+            try {
+                const res = await fetch(`${API_BASE}/api/bots/${this.botId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ [field]: value, actorName: 'Operator' })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    this.setStatus('saved', '✓ Saved');
+                    setTimeout(() => this.setStatus('', ''), 2000);
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                console.error('Failed to update bot setting:', error);
+                this.setStatus('failed', '✗ Failed');
+                showToast('Ошибка сохранения', 'error');
+            }
+        },
+
+        setStatus(cls, text) {
+            if (this.statusEl) {
+                this.statusEl.className = 'save-status ' + cls;
+                this.statusEl.textContent = text;
+            }
+        }
+    };
+
+    // ===========================
     // LOGS UI MODULE
     // ===========================
     const LogsUI = {
@@ -1284,6 +1381,7 @@
         // Initialize folders and logs modules
         FoldersUI.init();
         LogsUI.init();
+        BotSettingsUI.init();
 
         Intro.init();
     }

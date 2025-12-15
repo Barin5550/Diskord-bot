@@ -101,6 +101,19 @@ async function initDatabase() {
             server_name TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
+
+        CREATE TABLE IF NOT EXISTS bots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL DEFAULT 'MyBot',
+            command_prefix TEXT NOT NULL DEFAULT '!',
+            server_logs INTEGER DEFAULT 1,
+            big_actions INTEGER DEFAULT 1,
+            auto_moderation INTEGER DEFAULT 1,
+            activity_logging INTEGER DEFAULT 1,
+            welcome_messages INTEGER DEFAULT 0,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
     `);
 
     // Create indexes
@@ -421,5 +434,53 @@ const logsDB = {
     }
 };
 
-module.exports = { initDatabase, memeDB, foldersDB, logsDB };
+// Bots database functions
+const botsDB = {
+    getBot(botId = 1) {
+        return queryOne(`SELECT * FROM bots WHERE id = ?`, [botId]);
+    },
+
+    updateBot(botId, updates) {
+        const allowedFields = ['name', 'command_prefix', 'server_logs', 'big_actions', 'auto_moderation', 'activity_logging', 'welcome_messages'];
+        const setClauses = [];
+        const params = [];
+
+        for (const [key, value] of Object.entries(updates)) {
+            // Convert camelCase to snake_case
+            const snakeKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+            if (allowedFields.includes(snakeKey)) {
+                setClauses.push(`${snakeKey} = ?`);
+                params.push(typeof value === 'boolean' ? (value ? 1 : 0) : value);
+            }
+        }
+
+        if (setClauses.length === 0) {
+            return null;
+        }
+
+        setClauses.push('updated_at = CURRENT_TIMESTAMP');
+        params.push(botId);
+
+        execute(`UPDATE bots SET ${setClauses.join(', ')} WHERE id = ?`, params);
+        return this.getBot(botId);
+    },
+
+    ensureDefaultBot() {
+        const existing = this.getBot(1);
+        if (!existing) {
+            execute(`INSERT INTO bots (id, name, command_prefix) VALUES (1, 'MyBot', '!')`);
+        }
+        return this.getBot(1);
+    },
+
+    getOrCreateBot(botId = 1) {
+        let bot = this.getBot(botId);
+        if (!bot && botId === 1) {
+            bot = this.ensureDefaultBot();
+        }
+        return bot;
+    }
+};
+
+module.exports = { initDatabase, memeDB, foldersDB, logsDB, botsDB };
 

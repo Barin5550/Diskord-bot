@@ -10,7 +10,7 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const WebSocket = require('ws');
-const { initDatabase, memeDB, foldersDB, logsDB } = require('./database');
+const { initDatabase, memeDB, foldersDB, logsDB, botsDB } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -413,6 +413,99 @@ app.post('/api/logs/actions', (req, res) => {
     } catch (error) {
         console.error('Error adding action log:', error);
         res.status(500).json({ error: 'Failed to add action log' });
+    }
+});
+
+// ===========================
+// BOTS API
+// ===========================
+
+// Get bot settings
+app.get('/api/bots/:id', (req, res) => {
+    try {
+        const botId = parseInt(req.params.id) || 1;
+        const bot = botsDB.getOrCreateBot(botId);
+
+        if (!bot) {
+            return res.status(404).json({ success: false, error: 'Bot not found' });
+        }
+
+        // Convert snake_case to camelCase for frontend
+        res.json({
+            success: true,
+            bot: {
+                id: bot.id,
+                name: bot.name,
+                commandPrefix: bot.command_prefix,
+                serverLogs: !!bot.server_logs,
+                bigActions: !!bot.big_actions,
+                autoModeration: !!bot.auto_moderation,
+                activityLogging: !!bot.activity_logging,
+                welcomeMessages: !!bot.welcome_messages,
+                updatedAt: bot.updated_at,
+                createdAt: bot.created_at
+            }
+        });
+    } catch (error) {
+        console.error('Error getting bot:', error);
+        res.status(500).json({ success: false, error: 'Failed to get bot settings' });
+    }
+});
+
+// Update bot settings (PATCH)
+app.patch('/api/bots/:id', (req, res) => {
+    try {
+        const botId = parseInt(req.params.id) || 1;
+        const updates = req.body;
+        const actorName = req.body.actorName || 'System';
+
+        // Remove actorName from updates
+        delete updates.actorName;
+
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({ success: false, error: 'No fields to update' });
+        }
+
+        const updatedBot = botsDB.updateBot(botId, updates);
+
+        if (!updatedBot) {
+            return res.status(404).json({ success: false, error: 'Bot not found or no valid fields' });
+        }
+
+        // Log the action
+        const changedFields = Object.keys(updates).join(', ');
+        logsDB.addActionLog(
+            'bot_updated',
+            'admin',
+            actorName,
+            'bot',
+            String(botId),
+            updatedBot.name,
+            `Changed: ${changedFields}`,
+            null,
+            null
+        );
+
+        // Broadcast update
+        broadcast('bot_updated', { botId, updates });
+
+        res.json({
+            success: true,
+            bot: {
+                id: updatedBot.id,
+                name: updatedBot.name,
+                commandPrefix: updatedBot.command_prefix,
+                serverLogs: !!updatedBot.server_logs,
+                bigActions: !!updatedBot.big_actions,
+                autoModeration: !!updatedBot.auto_moderation,
+                activityLogging: !!updatedBot.activity_logging,
+                welcomeMessages: !!updatedBot.welcome_messages,
+                updatedAt: updatedBot.updated_at
+            }
+        });
+    } catch (error) {
+        console.error('Error updating bot:', error);
+        res.status(500).json({ success: false, error: 'Failed to update bot settings' });
     }
 });
 

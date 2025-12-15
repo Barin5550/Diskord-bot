@@ -6486,6 +6486,26 @@ select:focus {
     color: var(--color-accent);
 }
 
+/* Save Status Indicator */
+.save-status {
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-left: var(--space-3);
+    transition: opacity 0.3s ease;
+}
+
+.save-status.saving {
+    color: var(--color-warning);
+}
+
+.save-status.saved {
+    color: var(--color-success);
+}
+
+.save-status.failed {
+    color: var(--color-error);
+}
+
 /* Reduced Motion Preference */
 @media (prefers-reduced-motion: reduce) {
 
