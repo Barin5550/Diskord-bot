@@ -614,6 +614,13 @@
                 MemeFeed.loadMemes();
             }, 100);
         }
+
+        // Load Dashboard stats when switching to dashboard
+        if (viewName === 'dashboard') {
+            setTimeout(() => {
+                Dashboard.load();
+            }, 100);
+        }
     }
 
     // ===========================
@@ -1724,6 +1731,67 @@
     };
 
     // ===========================
+    // DASHBOARD API
+    // ===========================
+    const Dashboard = {
+        loaded: false,
+
+        async load() {
+            try {
+                // Load stats and status in parallel
+                const [statsRes, statusRes] = await Promise.all([
+                    fetch(`${window.location.origin}/api/stats`),
+                    fetch(`${window.location.origin}/api/status`)
+                ]);
+
+                const stats = await statsRes.json();
+                const status = await statusRes.json();
+
+                // Update UI elements
+                const usersEl = $('#dash-total-users');
+                const serversEl = $('#dash-active-servers');
+                const commandsEl = $('#dash-commands-today');
+                const statusEl = $('#dash-status');
+                const uptimeEl = $('#dash-uptime');
+                const statusIconEl = $('#dash-status-icon');
+
+                if (usersEl) usersEl.textContent = this.formatNumber(stats.totalMembers || 0);
+                if (serversEl) serversEl.textContent = stats.activeServers || 0;
+                if (commandsEl) commandsEl.textContent = stats.commandsToday || 0;
+
+                if (statusEl) {
+                    const isOnline = status.status === 'online';
+                    statusEl.textContent = isOnline ? 'Online' : 'Connecting...';
+                }
+
+                if (uptimeEl) {
+                    uptimeEl.textContent = `${status.uptime || '99.9%'} uptime`;
+                }
+
+                if (statusIconEl) {
+                    statusIconEl.className = status.status === 'online'
+                        ? 'dash-stat-icon pulse-green'
+                        : 'dash-stat-icon';
+                }
+
+                this.loaded = true;
+                console.log('[Dashboard] Stats loaded:', stats, status);
+            } catch (error) {
+                console.error('[Dashboard] Failed to load stats:', error);
+                // Show error state
+                const statusEl = $('#dash-status');
+                if (statusEl) statusEl.textContent = 'Offline';
+            }
+        },
+
+        formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num.toString();
+        }
+    };
+
+    // ===========================
     // MEME API
     // ===========================
     const API_BASE = window.location.origin;
@@ -1824,7 +1892,7 @@
 
         connect() {
             const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${wsProtocol}//${window.location.host}`;
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
 
             try {
                 this.ws = new WebSocket(wsUrl);
@@ -2358,6 +2426,8 @@
             if (app) app.classList.remove('hidden');
             // Fetch user info
             checkSessionInBackground();
+            // Load dashboard stats
+            Dashboard.load();
             return; // Don't run intro
         }
         if (urlParams.get('auth_error')) {
@@ -2377,6 +2447,8 @@
             if (app) app.classList.remove('hidden');
             // Verify session in background
             checkSessionInBackground();
+            // Load dashboard stats
+            Dashboard.load();
         } else {
             // Not authenticated - show intro
             Intro.init();

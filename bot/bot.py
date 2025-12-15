@@ -1,7 +1,5 @@
-"""
-Discord Bot with Web API - Nexus Console
-Uses SQLite instead of PostgreSQL for easy setup
-"""
+# Diskord Bot + Web API Server
+# Unified Python server with Discord bot and REST API
 
 import discord
 from discord.ext import commands
@@ -11,19 +9,30 @@ from datetime import datetime, timezone
 import os
 from dotenv import load_dotenv
 from aiohttp import web
+import aiohttp
 import json
+import random
+import hashlib
 
 load_dotenv()
 
 # --- CONFIGURATION ---
-TOKEN = os.getenv("DISCORD_TOKEN", "")
-DATABASE_PATH = os.path.join(os.path.dirname(__file__), "bot_data.db")
+TOKEN = os.getenv("DISCORD_TOKEN")
+CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "")
+CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
 
-# Channel IDs (configure in .env or here)
-CHANNEL_ID_LOGS = int(os.getenv("CHANNEL_ID_LOGS", "0") or "0")
-ADMIN_IDS = set(map(int, filter(None, os.getenv("ADMIN_IDS", "").split(","))))
+# Channels (configure these for your server)
+CHANNEL_ID_LOGS = int(os.getenv("CHANNEL_ID_LOGS", "0"))
+BIG_ACTION_ID = int(os.getenv("BIG_ACTION_ID", "0"))
 
-# Bot Setup
+# Colors
+PSI_YELLOW = 0xffe989
+DARK_RED = 0xad1f1f
+
+# Owner ID (cannot be removed from admins)
+OWNER_ID = int(os.getenv("OWNER_ID", "777206368389038081"))
+
+# Bot setup
 intents = discord.Intents.default()
 intents.message_content = True
 intents.messages = True
@@ -31,38 +40,67 @@ intents.members = True
 bot = commands.Bot(command_prefix="C7/", intents=intents)
 
 # Globals
-db = None
-logs_channel = None
+db_conn = None
 waiting_users = {}
-
-# Colors
-psi_yellow = 0xffe989
+logs_channel = None
+big_action_channel = None
+connected_websockets = set()
 
 # --- DATABASE ---
-async def init_db():
-    global db
-    db = await aiosqlite.connect(DATABASE_PATH)
-    db.row_factory = aiosqlite.Row
+DB_PATH = os.path.join(os.path.dirname(__file__), 'database.db')
+
+async def init_database():
+    """Initialize SQLite database with all required tables"""
+    global db_conn
+    db_conn = await aiosqlite.connect(DB_PATH)
+    db_conn.row_factory = aiosqlite.Row
     
-    await db.executescript("""
+    await db_conn.executescript("""
+        -- Members table
         CREATE TABLE IF NOT EXISTS members (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER UNIQUE NOT NULL,
             username TEXT,
+            email TEXT,
+            avatar TEXT,
             join_date TEXT
         );
         
+        -- Message logs
+        CREATE TABLE IF NOT EXISTS message_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            server_id INTEGER,
+            server_name TEXT,
+            channel_id INTEGER,
+            channel_name TEXT,
+            user_id INTEGER,
+            username TEXT,
+            content TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        -- Bot admins
+        CREATE TABLE IF NOT EXISTS bot_admins (
+            user_id INTEGER PRIMARY KEY,
+            username TEXT,
+            role TEXT DEFAULT 'admin',
+            added_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        -- Saved messages
         CREATE TABLE IF NOT EXISTS saved_msg (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
-            folder TEXT,
+            folder TEXT DEFAULT 'default',
             username TEXT,
             content TEXT,
             timestamp TEXT,
             channel_id INTEGER,
-            message_id INTEGER
+            message_id INTEGER,
+            guild_id INTEGER
         );
         
+        -- Folders
         CREATE TABLE IF NOT EXISTS folders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -70,26 +108,92 @@ async def init_db():
             owner_id TEXT
         );
         
+        -- Server folders mapping
         CREATE TABLE IF NOT EXISTS server_folders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            folder_id INTEGER,
+            folder_id INTEGER REFERENCES folders(id) ON DELETE CASCADE,
             server_id INTEGER,
             server_name TEXT,
-            UNIQUE(folder_id, server_id),
-            FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE
+            server_icon TEXT,
+            UNIQUE(folder_id, server_id)
+        );
+        
+        -- Memes
+        CREATE TABLE IF NOT EXISTS memes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            image_path TEXT NOT NULL,
+            caption TEXT,
+            user_id INTEGER NOT NULL,
+            like_count INTEGER DEFAULT 0,
+            dislike_count INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        -- Votes
+        CREATE TABLE IF NOT EXISTS votes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            meme_id INTEGER REFERENCES memes(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL,
+            vote_type TEXT,
+            UNIQUE(meme_id, user_id)
+        );
+        
+        -- Chat rooms
+        CREATE TABLE IF NOT EXISTS chat_rooms (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            created_by INTEGER,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        -- Chat messages
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            room_id INTEGER REFERENCES chat_rooms(id) ON DELETE CASCADE,
+            user_id INTEGER,
+            username TEXT,
+            content TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        -- Bot settings
+        CREATE TABLE IF NOT EXISTS bot_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
         );
     """)
-    await db.commit()
-    print("[DB] SQLite database ready")
+    await db_conn.commit()
+    print("[DB] + Database initialized")
 
-# --- API SERVER ---
+# --- WEB SERVER ---
 routes = web.RouteTableDef()
+
+def find_static_folder():
+    """Find web-console folder"""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.join(current_dir, '..', 'web-console'),
+        os.path.join(current_dir, 'web-console'),
+        os.path.join(os.getcwd(), 'web-console'),
+    ]
+    for path in candidates:
+        resolved = os.path.abspath(path)
+        if os.path.exists(os.path.join(resolved, 'index.html')):
+            print(f"[WEB] + Serving from: {resolved}")
+            return resolved
+    print("[WEB] X web-console not found!")
+    return None
+
+STATIC_PATH = find_static_folder()
+UPLOADS_PATH = os.path.join(STATIC_PATH, 'uploads') if STATIC_PATH else 'uploads'
+os.makedirs(UPLOADS_PATH, exist_ok=True)
 
 def cors_headers():
     return {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Credentials': 'true'
     }
 
 def json_response(data, status=200):
@@ -99,6 +203,8 @@ def json_response(data, status=200):
         status=status,
         headers=cors_headers()
     )
+
+# --- API ENDPOINTS ---
 
 @routes.options('/{tail:.*}')
 async def handle_options(request):
@@ -110,10 +216,22 @@ async def handle_status(request):
     return json_response({
         'status': 'online' if bot.is_ready() else 'connecting',
         'latency': round(bot.latency * 1000) if bot.is_ready() else 0,
-        'guilds': len(bot.guilds) if bot.is_ready() else 0
+        'guilds': len(bot.guilds) if bot.is_ready() else 0,
+        'uptime': '99.9%'
     })
 
-# Servers List
+# Stats
+@routes.get('/api/stats')
+async def handle_stats(request):
+    total_members = sum(g.member_count for g in bot.guilds) if bot.is_ready() else 0
+    return json_response({
+        'totalMembers': total_members,
+        'activeServers': len(bot.guilds) if bot.is_ready() else 0,
+        'commandsToday': 0,
+        'uptime': '99.9%'
+    })
+
+# Servers
 @routes.get('/api/servers')
 async def handle_servers(request):
     servers = []
@@ -126,197 +244,523 @@ async def handle_servers(request):
         })
     return json_response(servers)
 
-# --- FOLDER ROUTES ---
-@routes.get('/api/folders')
-async def handle_folders_get(request):
-    async with db.execute("SELECT id, name, color, owner_id FROM folders ORDER BY id ASC") as cursor:
-        rows = await cursor.fetchall()
-        folders = [{'id': r['id'], 'name': r['name'], 'color': r['color'] or '#FFE989', 'owner_id': r['owner_id']} for r in rows]
-        return json_response(folders)
+# --- AUTH ---
+@routes.post('/api/auth/login')
+async def handle_auth_login(request):
+    data = await request.json()
+    code = data.get('code')
+    
+    if not code:
+        return json_response({'error': 'No code provided'}, 400)
+    if not CLIENT_SECRET:
+        return json_response({'error': 'Server not configured for OAuth'}, 500)
+    
+    async with aiohttp.ClientSession() as session:
+        try:
+            # Exchange code for token
+            payload = {
+                'client_id': CLIENT_ID,
+                'client_secret': CLIENT_SECRET,
+                'grant_type': 'authorization_code',
+                'code': code,
+                'redirect_uri': 'http://localhost:5000/'
+            }
+            async with session.post('https://discord.com/api/oauth2/token', data=payload) as resp:
+                if resp.status != 200:
+                    return json_response({'error': 'Discord auth failed'}, 400)
+                token_data = await resp.json()
+                access_token = token_data['access_token']
+            
+            # Get user info
+            async with session.get('https://discord.com/api/users/@me', 
+                                   headers={'Authorization': f'Bearer {access_token}'}) as resp:
+                if resp.status != 200:
+                    return json_response({'error': 'Failed to get user'}, 400)
+                user_data = await resp.json()
+                
+        except Exception as e:
+            return json_response({'error': str(e)}, 500)
+    
+    # Save user
+    user_id = int(user_data['id'])
+    username = user_data['username']
+    avatar = user_data.get('avatar')
+    avatar_url = f"https://cdn.discordapp.com/avatars/{user_id}/{avatar}.png" if avatar else None
+    
+    await db_conn.execute("""
+        INSERT OR REPLACE INTO members (user_id, username, avatar, join_date)
+        VALUES (?, ?, ?, ?)
+    """, (user_id, username, avatar_url, datetime.now(timezone.utc).isoformat()))
+    await db_conn.commit()
+    
+    return json_response({
+        'success': True,
+        'user': {'id': str(user_id), 'username': username, 'avatar': avatar_url}
+    })
 
-@routes.post('/api/folders')
+# --- ADMINS ---
+@routes.get('/api/admins')
+async def handle_admins_get(request):
+    admins = [{'user_id': str(OWNER_ID), 'username': 'Owner', 'role': 'owner', 'added_at': 'System', 'is_owner': True}]
+    
+    cursor = await db_conn.execute("SELECT user_id, username, role, added_at FROM bot_admins ORDER BY added_at DESC")
+    rows = await cursor.fetchall()
+    
+    for r in rows:
+        if r['user_id'] != OWNER_ID:
+            admins.append({
+                'user_id': str(r['user_id']),
+                'username': r['username'] or f"User {r['user_id']}",
+                'role': r['role'],
+                'added_at': r['added_at'],
+                'is_owner': False
+            })
+    
+    return json_response({'success': True, 'admins': admins})
+
+@routes.post('/api/admins')
+async def handle_admins_add(request):
+    data = await request.json()
+    try:
+        user_id = int(data.get('userId'))
+        username = data.get('username', f'User {user_id}')
+        role = data.get('role', 'admin')
+        
+        await db_conn.execute(
+            "INSERT OR REPLACE INTO bot_admins (user_id, username, role, added_at) VALUES (?, ?, ?, ?)",
+            (user_id, username, role, datetime.now(timezone.utc).isoformat())
+        )
+        await db_conn.commit()
+        return json_response({'success': True})
+    except:
+        return json_response({'error': 'Invalid ID'}, 400)
+
+@routes.delete('/api/admins/{id}')
+async def handle_admins_delete(request):
+    user_id = int(request.match_info['id'])
+    if user_id == OWNER_ID:
+        return json_response({'error': 'Cannot remove Owner'}, 403)
+    
+    await db_conn.execute("DELETE FROM bot_admins WHERE user_id = ?", (user_id,))
+    await db_conn.commit()
+    return json_response({'success': True})
+
+# --- FOLDERS ---
+@routes.get('/api/server-folders')
+async def handle_folders_get(request):
+    cursor = await db_conn.execute("SELECT id, name, color, owner_id FROM folders ORDER BY id ASC")
+    rows = await cursor.fetchall()
+    folders = [{'id': r['id'], 'name': r['name'], 'color': r['color'] or '#FFE989', 'owner_id': r['owner_id']} for r in rows]
+    return json_response({'success': True, 'folders': folders})
+
+@routes.post('/api/server-folders')
 async def handle_folder_create(request):
     data = await request.json()
     name = data.get('name')
-    owner_id = data.get('ownerId', 'system')
     color = data.get('color', '#FFE989')
-    if not name: return json_response({'error': 'Name required'}, 400)
     
-    cursor = await db.execute(
+    if not name:
+        return json_response({'error': 'Name required'}, 400)
+    
+    cursor = await db_conn.execute(
         "INSERT INTO folders (name, color, owner_id) VALUES (?, ?, ?)",
-        (name, color, owner_id)
+        (name, color, 'system')
     )
-    await db.commit()
-    return json_response({'id': cursor.lastrowid, 'name': name, 'color': color})
+    await db_conn.commit()
+    
+    return json_response({'success': True, 'folder': {'id': cursor.lastrowid, 'name': name, 'color': color}})
 
-@routes.put('/api/folders/{id}')
-async def handle_folder_update(request):
+@routes.get('/api/server-folders/{id}')
+async def handle_folder_get(request):
+    folder_id = int(request.match_info['id'])
+    
+    cursor = await db_conn.execute("SELECT id, name, color FROM folders WHERE id = ?", (folder_id,))
+    folder = await cursor.fetchone()
+    
+    if not folder:
+        return json_response({'error': 'Folder not found'}, 404)
+    
+    cursor = await db_conn.execute(
+        "SELECT server_id, server_name, server_icon FROM server_folders WHERE folder_id = ?",
+        (folder_id,)
+    )
+    servers = await cursor.fetchall()
+    
+    return json_response({
+        'success': True,
+        'folder': {'id': folder['id'], 'name': folder['name'], 'color': folder['color']},
+        'servers': [{'id': str(s['server_id']), 'name': s['server_name'], 'icon': s['server_icon']} for s in servers]
+    })
+
+@routes.post('/api/server-folders/{id}/servers')
+async def handle_folder_add_server(request):
     folder_id = int(request.match_info['id'])
     data = await request.json()
-    name = data.get('name')
-    color = data.get('color')
-    await db.execute("UPDATE folders SET name=?, color=? WHERE id=?", (name, color, folder_id))
-    await db.commit()
-    return json_response({'status': 'updated'})
-
-@routes.delete('/api/folders/{id}')
-async def handle_folder_delete(request):
-    folder_id = int(request.match_info['id'])
-    await db.execute("DELETE FROM folders WHERE id=?", (folder_id,))
-    await db.commit()
-    return json_response({'status': 'deleted'})
-
-@routes.get('/api/folders/{id}/servers')
-async def handle_folder_servers_get(request):
-    folder_id = int(request.match_info['id'])
-    async with db.execute("SELECT server_id, server_name FROM server_folders WHERE folder_id=?", (folder_id,)) as cursor:
-        rows = await cursor.fetchall()
-        servers = [{'server_id': str(r['server_id']), 'server_name': r['server_name']} for r in rows]
-        return json_response(servers)
-
-@routes.post('/api/folders/{id}/servers')
-async def handle_folder_server_add(request):
-    folder_id = int(request.match_info['id'])
-    data = await request.json()
-    server_id = data.get('serverId')
-    server_name = data.get('serverName', f"Server {server_id}")
+    server_id = int(data.get('serverId'))
+    server_name = data.get('serverName', f'Server {server_id}')
+    server_icon = data.get('serverIcon')
     
-    # Try to get real name from bot
-    try:
-        guild = bot.get_guild(int(server_id))
-        if guild: server_name = guild.name
-    except:
-        pass
-
-    if not server_id: return json_response({'error': 'Server ID required'}, 400)
+    # Try to get real server info from bot
+    guild = bot.get_guild(server_id)
+    if guild:
+        server_name = guild.name
+        server_icon = str(guild.icon.url) if guild.icon else None
     
-    await db.execute("""
-        INSERT OR IGNORE INTO server_folders (folder_id, server_id, server_name) 
-        VALUES (?, ?, ?)
-    """, (folder_id, int(server_id), server_name))
-    await db.commit()
-    return json_response({'status': 'added'})
+    await db_conn.execute(
+        "INSERT OR REPLACE INTO server_folders (folder_id, server_id, server_name, server_icon) VALUES (?, ?, ?, ?)",
+        (folder_id, server_id, server_name, server_icon)
+    )
+    await db_conn.commit()
+    
+    return json_response({'success': True})
 
-@routes.delete('/api/folders/{folder_id}/servers/{server_id}')
-async def handle_folder_server_remove(request):
+@routes.delete('/api/server-folders/{folder_id}/servers/{server_id}')
+async def handle_folder_remove_server(request):
     folder_id = int(request.match_info['folder_id'])
     server_id = int(request.match_info['server_id'])
-    await db.execute("DELETE FROM server_folders WHERE folder_id=? AND server_id=?", (folder_id, server_id))
-    await db.commit()
-    return json_response({'status': 'removed'})
+    
+    await db_conn.execute(
+        "DELETE FROM server_folders WHERE folder_id = ? AND server_id = ?",
+        (folder_id, server_id)
+    )
+    await db_conn.commit()
+    return json_response({'success': True})
 
-# --- ANALYTICS ROUTES ---
-@routes.get('/api/analytics/messages')
-async def handle_analytics_messages(request):
-    """Get message count by day for the last 30 days"""
-    async with db.execute("""
-        SELECT DATE(timestamp) as date, COUNT(*) as count 
-        FROM saved_msg 
-        WHERE timestamp >= datetime('now', '-30 days')
-        GROUP BY DATE(timestamp)
-        ORDER BY date ASC
-    """) as cursor:
-        rows = await cursor.fetchall()
-        data = [{'date': r['date'], 'count': r['count']} for r in rows]
-        return json_response(data)
+@routes.delete('/api/server-folders/{id}')
+async def handle_folder_delete(request):
+    folder_id = int(request.match_info['id'])
+    await db_conn.execute("DELETE FROM folders WHERE id = ?", (folder_id,))
+    await db_conn.commit()
+    return json_response({'success': True})
 
-@routes.get('/api/analytics/users')
-async def handle_analytics_users(request):
-    """Get top active users"""
-    limit = int(request.query.get('limit', 10))
-    async with db.execute("""
-        SELECT username, user_id, COUNT(*) as message_count
-        FROM saved_msg
-        GROUP BY user_id
-        ORDER BY message_count DESC
-        LIMIT ?
-    """, (limit,)) as cursor:
-        rows = await cursor.fetchall()
-        users = [{
-            'username': r['username'],
-            'user_id': str(r['user_id']),
-            'message_count': r['message_count']
-        } for r in rows]
-        return json_response(users)
-
-@routes.get('/api/analytics/servers')
-async def handle_analytics_servers(request):
-    """Get server statistics"""
-    servers = []
-    for guild in bot.guilds:
-        servers.append({
-            'id': str(guild.id),
-            'name': guild.name,
-            'member_count': guild.member_count,
-            'channel_count': len(guild.channels),
-            'role_count': len(guild.roles),
-            'created_at': guild.created_at.isoformat() if guild.created_at else None,
-            'icon': str(guild.icon.url) if guild.icon else None
-        })
-    return json_response(servers)
-
-@routes.get('/api/analytics/activity')
-async def handle_analytics_activity(request):
-    """Get hourly activity distribution"""
-    async with db.execute("""
-        SELECT strftime('%H', timestamp) as hour, COUNT(*) as count
-        FROM saved_msg
-        WHERE timestamp >= datetime('now', '-7 days')
-        GROUP BY hour
-        ORDER BY hour ASC
-    """) as cursor:
-        rows = await cursor.fetchall()
-        # Fill in missing hours with 0
-        activity = {str(i).zfill(2): 0 for i in range(24)}
-        for r in rows:
-            if r['hour']:
-                activity[r['hour']] = r['count']
-        return json_response([{'hour': h, 'count': c} for h, c in activity.items()])
-
-# --- LOG ROUTES ---
+# --- LOGS ---
 @routes.get('/api/logs/messages')
 async def handle_logs_messages(request):
     limit = int(request.query.get('limit', 50))
-    async with db.execute(
-        "SELECT folder, username, content, timestamp, user_id FROM saved_msg ORDER BY timestamp DESC LIMIT ?",
-        (limit,)
-    ) as cursor:
-        rows = await cursor.fetchall()
-        logs = [{
-            'server_name': r['folder'],
-            'username': r['username'],
-            'user_id': str(r['user_id']),
-            'content': r['content'],
-            'created_at': r['timestamp']
-        } for r in rows]
-        return json_response(logs)
+    
+    cursor = await db_conn.execute("""
+        SELECT server_name, channel_name, username, user_id, content, created_at 
+        FROM message_logs ORDER BY created_at DESC LIMIT ?
+    """, (limit,))
+    rows = await cursor.fetchall()
+    
+    logs = [{
+        'server_name': r['server_name'] or 'Unknown',
+        'channel_name': r['channel_name'] or 'Unknown',
+        'username': r['username'],
+        'user_id': str(r['user_id']),
+        'content': r['content'],
+        'created_at': r['created_at']
+    } for r in rows]
+    
+    return json_response({'success': True, 'logs': logs, 'total': len(logs)})
 
-# Global Send
-@routes.post('/api/send')
-async def handle_api_send(request):
+@routes.get('/api/logs/actions')
+async def handle_logs_actions(request):
+    return json_response({'success': True, 'logs': [], 'total': 0})
+
+# --- MEMES ---
+@routes.get('/api/memes')
+async def handle_memes_get(request):
+    sort_by = request.query.get('sort', 'new')
+    user_id = request.query.get('userId', '0')
+    
+    order = "created_at DESC" if sort_by == 'new' else "like_count DESC, created_at DESC"
+    
+    cursor = await db_conn.execute(f"""
+        SELECT m.*, 
+               (SELECT vote_type FROM votes WHERE meme_id = m.id AND user_id = ?) as user_vote
+        FROM memes m ORDER BY {order}
+    """, (int(user_id) if user_id.isdigit() else 0,))
+    rows = await cursor.fetchall()
+    
+    memes = [{
+        'id': r['id'],
+        'image_path': r['image_path'],
+        'caption': r['caption'],
+        'user_id': str(r['user_id']),
+        'like_count': r['like_count'],
+        'dislike_count': r['dislike_count'],
+        'user_vote': r['user_vote'],
+        'created_at': r['created_at']
+    } for r in rows]
+    
+    return json_response({'success': True, 'memes': memes})
+
+@routes.post('/api/memes')
+async def handle_meme_upload(request):
+    reader = await request.multipart()
+    
+    caption = ""
+    user_id = 0
+    filename = None
+    
+    async for field in reader:
+        if field.name == 'caption':
+            caption = (await field.read()).decode('utf-8')
+        elif field.name == 'userId':
+            user_id = int((await field.read()).decode('utf-8'))
+        elif field.name == 'image':
+            ext = os.path.splitext(field.filename)[1] or '.jpg'
+            filename = f"meme_{int(datetime.now().timestamp())}_{random.randint(1000,9999)}{ext}"
+            filepath = os.path.join(UPLOADS_PATH, filename)
+            
+            with open(filepath, 'wb') as f:
+                while True:
+                    chunk = await field.read_chunk()
+                    if not chunk:
+                        break
+                    f.write(chunk)
+    
+    if not filename:
+        return json_response({'error': 'No image uploaded'}, 400)
+    
+    url = f"/uploads/{filename}"
+    
+    cursor = await db_conn.execute(
+        "INSERT INTO memes (image_path, caption, user_id) VALUES (?, ?, ?)",
+        (url, caption, user_id)
+    )
+    await db_conn.commit()
+    
+    # Broadcast new meme
+    await broadcast('new_meme', {'meme': {
+        'id': cursor.lastrowid,
+        'image_path': url,
+        'caption': caption,
+        'user_id': str(user_id),
+        'like_count': 0,
+        'dislike_count': 0
+    }})
+    
+    return json_response({'success': True, 'meme': {'id': cursor.lastrowid, 'image_path': url}})
+
+@routes.post('/api/memes/{id}/vote')
+async def handle_meme_vote(request):
+    meme_id = int(request.match_info['id'])
     data = await request.json()
-    target_id = data.get('targetId')
-    message = data.get('message')
-    if not target_id or not message:
-        return json_response({'error': 'Missing fields'}, 400)
-    try:
-        channel = bot.get_channel(int(target_id))
-        if channel:
-            await channel.send(message)
-            return json_response({'status': 'sent to channel'})
-        user = await bot.fetch_user(int(target_id))
-        if user:
-            await user.send(message)
-            return json_response({'status': 'sent to user'})
-        return json_response({'error': 'not found'}, 404)
-    except Exception as e:
-        return json_response({'error': str(e)}, 500)
+    user_id = int(data.get('userId', 0))
+    vote_type = data.get('voteType')  # 'like' or 'dislike'
+    
+    # Check existing vote
+    cursor = await db_conn.execute(
+        "SELECT vote_type FROM votes WHERE meme_id = ? AND user_id = ?",
+        (meme_id, user_id)
+    )
+    existing = await cursor.fetchone()
+    
+    if existing:
+        if existing['vote_type'] == vote_type:
+            # Remove vote
+            await db_conn.execute("DELETE FROM votes WHERE meme_id = ? AND user_id = ?", (meme_id, user_id))
+            col = "like_count" if vote_type == 'like' else "dislike_count"
+            await db_conn.execute(f"UPDATE memes SET {col} = {col} - 1 WHERE id = ?", (meme_id,))
+        else:
+            # Change vote
+            await db_conn.execute("UPDATE votes SET vote_type = ? WHERE meme_id = ? AND user_id = ?", (vote_type, meme_id, user_id))
+            if vote_type == 'like':
+                await db_conn.execute("UPDATE memes SET like_count = like_count + 1, dislike_count = dislike_count - 1 WHERE id = ?", (meme_id,))
+            else:
+                await db_conn.execute("UPDATE memes SET like_count = like_count - 1, dislike_count = dislike_count + 1 WHERE id = ?", (meme_id,))
+    else:
+        # New vote
+        await db_conn.execute("INSERT INTO votes (meme_id, user_id, vote_type) VALUES (?, ?, ?)", (meme_id, user_id, vote_type))
+        col = "like_count" if vote_type == 'like' else "dislike_count"
+        await db_conn.execute(f"UPDATE memes SET {col} = {col} + 1 WHERE id = ?", (meme_id,))
+    
+    await db_conn.commit()
+    
+    # Get updated counts
+    cursor = await db_conn.execute("SELECT like_count, dislike_count FROM memes WHERE id = ?", (meme_id,))
+    meme = await cursor.fetchone()
+    
+    # Broadcast vote update
+    await broadcast('vote_update', {
+        'memeId': meme_id,
+        'likeCount': meme['like_count'],
+        'dislikeCount': meme['dislike_count']
+    })
+    
+    return json_response({'success': True, 'likeCount': meme['like_count'], 'dislikeCount': meme['dislike_count']})
 
-# --- BOT EVENTS ---
+@routes.delete('/api/memes/{id}')
+async def handle_meme_delete(request):
+    meme_id = int(request.match_info['id'])
+    user_id = request.query.get('userId')
+    
+    # Get meme to check ownership and delete file
+    cursor = await db_conn.execute("SELECT image_path, user_id FROM memes WHERE id = ?", (meme_id,))
+    meme = await cursor.fetchone()
+    
+    if not meme:
+        return json_response({'error': 'Meme not found'}, 404)
+    
+    # Delete file
+    if meme['image_path']:
+        filepath = os.path.join(STATIC_PATH, meme['image_path'].lstrip('/'))
+        if os.path.exists(filepath):
+            os.remove(filepath)
+    
+    await db_conn.execute("DELETE FROM memes WHERE id = ?", (meme_id,))
+    await db_conn.commit()
+    
+    await broadcast('meme_deleted', {'memeId': meme_id})
+    
+    return json_response({'success': True})
+
+@routes.get('/api/meme-of-day')
+async def handle_meme_of_day(request):
+    user_id = request.query.get('userId', '0')
+    
+    # Get top meme
+    cursor = await db_conn.execute("""
+        SELECT * FROM memes ORDER BY like_count DESC, created_at DESC LIMIT 1
+    """)
+    meme = await cursor.fetchone()
+    
+    # Get top 5
+    cursor = await db_conn.execute("""
+        SELECT * FROM memes ORDER BY like_count DESC, created_at DESC LIMIT 5
+    """)
+    top_memes = await cursor.fetchall()
+    
+    meme_data = None
+    if meme:
+        meme_data = {
+            'id': meme['id'],
+            'image_path': meme['image_path'],
+            'caption': meme['caption'],
+            'like_count': meme['like_count'],
+            'dislike_count': meme['dislike_count']
+        }
+    
+    return json_response({
+        'success': True,
+        'memeOfDay': meme_data,
+        'topMemes': [{
+            'id': m['id'],
+            'image_path': m['image_path'],
+            'caption': m['caption'],
+            'like_count': m['like_count']
+        } for m in top_memes]
+    })
+
+# --- BOT SETTINGS ---
+@routes.get('/api/bots/{id}')
+async def handle_bot_settings_get(request):
+    cursor = await db_conn.execute("SELECT key, value FROM bot_settings")
+    rows = await cursor.fetchall()
+    settings = {r['key']: r['value'] for r in rows}
+    
+    return json_response({
+        'success': True,
+        'bot': {
+            'name': bot.user.name if bot.user else 'Nexus Bot',
+            'commandPrefix': settings.get('prefix', 'C7/'),
+            'serverLogs': settings.get('serverLogs', 'true') == 'true',
+            'bigActions': settings.get('bigActions', 'true') == 'true',
+            'autoModeration': settings.get('autoModeration', 'false') == 'true',
+            'welcomeMessages': settings.get('welcomeMessages', 'false') == 'true'
+        }
+    })
+
+@routes.patch('/api/bots/{id}')
+async def handle_bot_settings_update(request):
+    data = await request.json()
+    
+    for key, value in data.items():
+        if key in ['commandPrefix', 'serverLogs', 'bigActions', 'autoModeration', 'welcomeMessages']:
+            db_key = key if key != 'commandPrefix' else 'prefix'
+            await db_conn.execute(
+                "INSERT OR REPLACE INTO bot_settings (key, value) VALUES (?, ?)",
+                (db_key, str(value).lower() if isinstance(value, bool) else value)
+            )
+    
+    await db_conn.commit()
+    return json_response({'success': True})
+
+# --- WEBSOCKET ---
+async def broadcast(event_type, data):
+    """Send event to all connected WebSocket clients"""
+    if not connected_websockets:
+        return
+    
+    message = json.dumps({'event': event_type, 'data': data})
+    dead_sockets = set()
+    
+    for ws in connected_websockets:
+        try:
+            await ws.send_str(message)
+        except:
+            dead_sockets.add(ws)
+    
+    connected_websockets.difference_update(dead_sockets)
+
+@routes.get('/ws')
+async def websocket_handler(request):
+    ws = web.WebSocketResponse()
+    await ws.prepare(request)
+    
+    connected_websockets.add(ws)
+    print(f"[WS] Client connected. Total: {len(connected_websockets)}")
+    
+    try:
+        async for msg in ws:
+            if msg.type == aiohttp.WSMsgType.TEXT:
+                try:
+                    data = json.loads(msg.data)
+                    # Handle incoming messages if needed
+                except:
+                    pass
+            elif msg.type == aiohttp.WSMsgType.ERROR:
+                break
+    finally:
+        connected_websockets.discard(ws)
+        print(f"[WS] Client disconnected. Total: {len(connected_websockets)}")
+    
+    return ws
+
+# --- STATIC FILES ---
+@routes.get('/')
+async def handle_root(request):
+    if not STATIC_PATH:
+        return web.Response(status=404, text="Web console not found")
+    return web.FileResponse(os.path.join(STATIC_PATH, 'index.html'))
+
+@routes.get('/uploads/{filename}')
+async def serve_upload(request):
+    filename = request.match_info['filename']
+    if '..' in filename:
+        return web.Response(status=403)
+    path = os.path.join(UPLOADS_PATH, filename)
+    if os.path.exists(path):
+        return web.FileResponse(path)
+    return web.Response(status=404)
+
+@routes.get('/{tail:.*}')
+async def serve_static(request):
+    if not STATIC_PATH:
+        return web.Response(status=404)
+    
+    tail = request.match_info['tail']
+    if '..' in tail:
+        return web.Response(status=403)
+    
+    path = os.path.join(STATIC_PATH, tail)
+    if os.path.exists(path) and os.path.isfile(path):
+        return web.FileResponse(path)
+    
+    # SPA fallback
+    return web.FileResponse(os.path.join(STATIC_PATH, 'index.html'))
+
+# --- DISCORD BOT EVENTS ---
+
 class SaveView(discord.ui.View):
+    """View for saving messages from Discord logs channel"""
     def __init__(self, message: discord.Message = None):
         super().__init__(timeout=None)
-        if message is None: return
+        if message is None:
+            return
         custom_id = f"save|{message.author.id}|{message.channel.id}|{message.id}"
         self.add_item(discord.ui.Button(label="Save", style=discord.ButtonStyle.primary, custom_id=custom_id))
 
@@ -325,117 +769,142 @@ class SaveView(discord.ui.View):
         _, user_id, channel_id, message_id = parts
         channel = bot.get_channel(int(channel_id))
         msg = await channel.fetch_message(int(message_id))
+        
         waiting_users[interaction.user.id] = {
             "user_id": int(user_id),
             "username": str(msg.author),
             "content": msg.content,
             "channel_id": int(channel_id),
-            "message_id": int(message_id)
+            "message_id": int(message_id),
+            "guild_id": msg.guild.id if msg.guild else 0
         }
-        await interaction.response.send_message("Send folder name or No/None/Default/- for default.", ephemeral=True)
+        await interaction.response.send_message("Send folder name or 'default':", ephemeral=True)
         return False
 
 @bot.event
 async def on_ready():
-    global logs_channel
-    if CHANNEL_ID_LOGS:
-        logs_channel = bot.get_channel(CHANNEL_ID_LOGS)
-    print(f"[OK] {bot.user} is ready!")
-    print(f"[INFO] Connected to {len(bot.guilds)} servers")
+    global logs_channel, big_action_channel
+    
+    logs_channel = bot.get_channel(CHANNEL_ID_LOGS) if CHANNEL_ID_LOGS else None
+    big_action_channel = bot.get_channel(BIG_ACTION_ID) if BIG_ACTION_ID else None
+    
     bot.add_view(SaveView())
+    
+    print(f"[BOT] + Bot ready: {bot.user}")
+    print(f"   Guilds: {len(bot.guilds)}")
+    print(f"   Logs channel: {logs_channel}")
 
 @bot.event
 async def on_message(message: discord.Message):
-    if message.author == bot.user: return
+    if message.author == bot.user:
+        return
+    
+    # Process commands first
     if message.content.startswith(bot.command_prefix):
         await bot.process_commands(message)
         return
-
-    # Log member
-    await db.execute("""
-        INSERT OR IGNORE INTO members (user_id, username, join_date)
-        VALUES (?, ?, ?)
-    """, (message.author.id, str(message.author), datetime.now(timezone.utc).isoformat()))
-    await db.commit()
-
-    # Folder saving response
-    user_id = message.author.id
-    if user_id in waiting_users:
-        folder_input = message.content.strip()
-        saved_message = waiting_users[user_id]
-        if folder_input.lower() in ['no', 'none', 'default', '-']:
-            folder_input = 'default'
-        
-        await db.execute("""
-            INSERT INTO saved_msg (user_id, folder, username, content, timestamp, channel_id, message_id)
+    
+    # Log message to database
+    if message.guild:
+        await db_conn.execute("""
+            INSERT INTO message_logs (server_id, server_name, channel_id, channel_name, user_id, username, content)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (saved_message['user_id'], folder_input, saved_message['username'], 
-              saved_message['content'], datetime.now(timezone.utc).isoformat(),
-              saved_message['channel_id'], saved_message['message_id']))
-        await db.commit()
-        await message.reply("✅ Message saved!")
-        del waiting_users[user_id]
-        return
-
-    # Log to channel
+        """, (message.guild.id, message.guild.name, message.channel.id, message.channel.name,
+              message.author.id, str(message.author), message.content))
+        await db_conn.commit()
+    
+    # Send to Discord logs channel
     if logs_channel:
         embed = discord.Embed(
-            title="Message sent",
-            description=f"**{message.author}** ({message.author.id}) sent\n```{message.content}```\nin {message.channel.mention}",
-            color=psi_yellow
+            title="Message",
+            description=f"**{message.author}** in {message.channel.mention}\n```{message.content[:1900]}```",
+            color=PSI_YELLOW
         )
-        embed.set_author(name=str(message.author), icon_url=message.author.avatar.url if message.author.avatar else None)
+        if message.author.avatar:
+            embed.set_author(name=str(message.author), icon_url=message.author.avatar.url)
         view = SaveView(message)
         await logs_channel.send(embed=embed, view=view)
+    
+    # Handle waiting save requests
+    user_id = message.author.id
+    if user_id in waiting_users:
+        folder = message.content.strip().lower()
+        if folder in ['no', 'none', '-', '']:
+            folder = 'default'
+        
+        saved = waiting_users[user_id]
+        await db_conn.execute("""
+            INSERT INTO saved_msg (user_id, folder, username, content, timestamp, channel_id, message_id, guild_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (saved['user_id'], folder, saved['username'], saved['content'],
+              datetime.now(timezone.utc).isoformat(), saved['channel_id'], saved['message_id'], saved['guild_id']))
+        await db_conn.commit()
+        
+        await message.reply(f"✅ Saved to folder: `{folder}`")
+        del waiting_users[user_id]
 
-    await bot.process_commands(message)
+# --- BOT COMMANDS ---
 
-# --- COMMANDS ---
+@bot.command(name="ping")
+async def cmd_ping(ctx):
+    await ctx.send(f"🏓 Pong! Latency: {round(bot.latency * 1000)}ms")
+
 @bot.command(name="show_saved")
-async def show_saved(ctx, folder: str = None):
-    folder = folder or "default"
-    async with db.execute("SELECT * FROM saved_msg WHERE folder=? ORDER BY timestamp ASC", (folder,)) as cursor:
-        rows = await cursor.fetchall()
-    if not rows: return await ctx.send(f"📭 No logs in {folder}")
-    await ctx.send(f"📬 Found {len(rows)} messages in '{folder}'")
+async def cmd_show_saved(ctx, folder: str = "default"):
+    cursor = await db_conn.execute("""
+        SELECT username, content, timestamp FROM saved_msg WHERE folder = ? ORDER BY timestamp DESC LIMIT 10
+    """, (folder,))
+    rows = await cursor.fetchall()
+    
+    if not rows:
+        return await ctx.send(f"No messages in folder `{folder}`")
+    
+    embed = discord.Embed(title=f"📁 Saved - {folder}", color=PSI_YELLOW)
+    for r in rows:
+        content = r['content'][:200] + "..." if len(r['content']) > 200 else r['content']
+        embed.add_field(name=r['username'], value=f"```{content}```", inline=False)
+    
+    await ctx.send(embed=embed)
 
 @bot.command(name="global_send")
-async def global_sending(ctx, channel_id: int, *, content: str):
-    if ctx.author.id not in ADMIN_IDS: return
+async def cmd_global_send(ctx, channel_id: int, *, content: str):
+    # Check if admin
+    cursor = await db_conn.execute("SELECT 1 FROM bot_admins WHERE user_id = ?", (ctx.author.id,))
+    is_admin = await cursor.fetchone() or ctx.author.id == OWNER_ID
+    
+    if not is_admin:
+        return await ctx.send("X Not authorized")
+    
     channel = bot.get_channel(channel_id)
-    if channel:
-        await channel.send(content)
-        await ctx.send("✅ Sent!")
-
-@bot.command(name="servers")
-async def list_servers(ctx):
-    if ctx.author.id not in ADMIN_IDS: return
-    servers = [f"• {g.name} ({g.id})" for g in bot.guilds]
-    await ctx.send(f"**Connected Servers:**\n" + "\n".join(servers[:20]))
+    if not channel:
+        return await ctx.send("X Channel not found")
+    
+    sent = await channel.send(content)
+    await ctx.send(f"+ Sent: {sent.jump_url}")
 
 # --- MAIN ---
+
 async def main():
-    # Initialize Database
-    await init_db()
+    await init_database()
     
-    # Start API Server
-    app = web.Application()
+    # Start web server
+    app = web.Application(client_max_size=10*1024*1024)  # 10MB max upload
     app.add_routes(routes)
+    
     runner = web.AppRunner(app)
     await runner.setup()
+    
     site = web.TCPSite(runner, '0.0.0.0', 5000)
     await site.start()
-    print("[API] Server listening on http://localhost:5000")
-
-    # Start Bot
+    print("[WEB] + Web API running on http://localhost:5000")
+    
+    # Start bot
     if TOKEN:
-        print("[BOT] Starting Discord bot...")
         async with bot:
             await bot.start(TOKEN)
     else:
-        print("[WARN] DISCORD_TOKEN not found in .env")
-        print("       API server running without Discord bot")
-        print("       Add DISCORD_TOKEN to .env to enable Discord features")
+        print("[WARN] No DISCORD_TOKEN - bot not started, web-only mode")
+        # Keep server running
         while True:
             await asyncio.sleep(3600)
 
@@ -443,4 +912,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\n[BYE] Bot stopped")
+        print("Shutting down...")
