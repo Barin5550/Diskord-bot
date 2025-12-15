@@ -1,0 +1,8 @@
+# Node modules
+node_modules/
+
+# Database files
+*.db
+
+# Uploads
+web-console/uploads/
