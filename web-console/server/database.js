@@ -77,15 +77,25 @@ async function initDatabase() {
             UNIQUE(folder_id, server_id)
         );
 
+        CREATE TABLE IF NOT EXISTS chat_rooms (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT,
+            color TEXT DEFAULT '#00d4ff',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
         CREATE TABLE IF NOT EXISTS message_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            room_id INTEGER DEFAULT 1,
             server_id TEXT,
             server_name TEXT,
             user_id TEXT NOT NULL,
             username TEXT NOT NULL,
             content TEXT NOT NULL,
             channel_name TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (room_id) REFERENCES chat_rooms(id) ON DELETE CASCADE
         );
 
         CREATE TABLE IF NOT EXISTS action_logs (
@@ -699,5 +709,71 @@ const profilesDB = {
     }
 };
 
-module.exports = { initDatabase, memeDB, foldersDB, logsDB, botsDB, adminsDB, serverFoldersDB, profilesDB };
+// Chat Rooms database functions
+const chatRoomsDB = {
+    ensureDefaultRooms() {
+        const count = queryOne(`SELECT COUNT(*) as count FROM chat_rooms`);
+        if (count.count === 0) {
+            const defaultRooms = [
+                { name: '🌍 Общий', description: 'Общий чат для всех', color: '#00d4ff' },
+                { name: '🎮 Игры', description: 'Обсуждение игр', color: '#ff6b6b' },
+                { name: '💻 Код', description: 'Программирование', color: '#4ecdc4' },
+                { name: '🎵 Музыка', description: 'Музыкальный чат', color: '#ffe66d' },
+                { name: '🎭 Мемы', description: 'Мемы и приколы', color: '#95e1d3' }
+            ];
+            defaultRooms.forEach(room => {
+                execute(`INSERT INTO chat_rooms (name, description, color) VALUES (?, ?, ?)`,
+                    [room.name, room.description, room.color]);
+            });
+        }
+    },
+
+    getRooms() {
+        this.ensureDefaultRooms();
+        return queryAll(`SELECT * FROM chat_rooms ORDER BY id`);
+    },
+
+    getRoom(id) {
+        return queryOne(`SELECT * FROM chat_rooms WHERE id = ?`, [id]);
+    },
+
+    createRoom(name, description, color) {
+        execute(`INSERT INTO chat_rooms (name, description, color) VALUES (?, ?, ?)`,
+            [name, description || '', color || '#00d4ff']);
+        return queryOne(`SELECT * FROM chat_rooms ORDER BY id DESC LIMIT 1`);
+    },
+
+    deleteRoom(id) {
+        if (id <= 5) return { success: false, error: 'Cannot delete default rooms' };
+        execute(`DELETE FROM chat_rooms WHERE id = ?`, [id]);
+        return { success: true };
+    },
+
+    getMessages(roomId, limit = 50, cursor = null) {
+        let messages;
+        if (cursor) {
+            messages = queryAll(
+                `SELECT * FROM message_logs WHERE room_id = ? AND id < ? ORDER BY id DESC LIMIT ?`,
+                [roomId, cursor, limit]
+            );
+        } else {
+            messages = queryAll(
+                `SELECT * FROM message_logs WHERE room_id = ? ORDER BY id DESC LIMIT ?`,
+                [roomId, limit]
+            );
+        }
+        const nextCursor = messages.length === limit ? messages[messages.length - 1].id : null;
+        return { messages: messages.reverse(), cursor: nextCursor };
+    },
+
+    addMessage(roomId, userId, username, content) {
+        execute(
+            `INSERT INTO message_logs (room_id, user_id, username, content) VALUES (?, ?, ?, ?)`,
+            [roomId, userId, username, content]
+        );
+        return queryOne(`SELECT * FROM message_logs ORDER BY id DESC LIMIT 1`);
+    }
+};
+
+module.exports = { initDatabase, memeDB, foldersDB, logsDB, botsDB, adminsDB, serverFoldersDB, profilesDB, chatRoomsDB };
 

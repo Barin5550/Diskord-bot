@@ -13,7 +13,9 @@
     const defaultSettings = {
         skipIntro: false,
         animations: true,
-        sound: false
+        sound: false,
+        overkill: false, // Extreme animations mode
+        theme: 'default' // 'default', 'light', 'cute'
     };
 
     let settings = { ...defaultSettings };
@@ -36,6 +38,55 @@
             console.error('Failed to save settings:', e);
         }
     }
+
+    // ===========================
+    // THEME MANAGER
+    // ===========================
+    const ThemeManager = {
+        current: 'default',
+        themes: ['default', 'light', 'cute'],
+
+        apply(themeName) {
+            if (!this.themes.includes(themeName)) themeName = 'default';
+
+            // Remove all theme classes
+            document.body.classList.remove('theme-light', 'theme-cute');
+
+            // Add new theme class (default has no class)
+            if (themeName !== 'default') {
+                document.body.classList.add(`theme-${themeName}`);
+            }
+
+            this.current = themeName;
+            settings.theme = themeName;
+            saveSettings();
+
+            // Update theme selector UI
+            this.updateUI();
+
+            console.log(`Theme applied: ${themeName}`);
+        },
+
+        updateUI() {
+            const buttons = document.querySelectorAll('.theme-btn');
+            buttons.forEach(btn => {
+                const theme = btn.dataset.theme;
+                btn.classList.toggle('active', theme === this.current);
+            });
+        },
+
+        init() {
+            // Add click listeners to theme buttons
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const theme = btn.dataset.theme;
+                    this.apply(theme);
+                });
+            });
+        }
+    };
+
+    window.ThemeManager = ThemeManager;
 
     // ===========================
     // AUTH MODULE
@@ -170,6 +221,22 @@
             });
         }
 
+        // Overkill mode (extreme animations)
+        const overkillEl = document.getElementById('setting-overkill');
+        if (overkillEl) {
+            overkillEl.checked = settings.overkill;
+            overkillEl.addEventListener('change', () => {
+                settings.overkill = overkillEl.checked;
+                saveSettings();
+                document.body.classList.toggle('overkill-mode', settings.overkill);
+                showToast(settings.overkill ? '🔥 ПЕРЕБОР АКТИВИРОВАН!' : 'Перебор отключён', settings.overkill ? 'warning' : 'info');
+            });
+            // Apply on load
+            if (settings.overkill) {
+                document.body.classList.add('overkill-mode');
+            }
+        }
+
         if (clearCacheBtn) {
             clearCacheBtn.addEventListener('click', () => {
                 if (confirm('Очистить все сохранённые данные? Это действие нельзя отменить.')) {
@@ -177,6 +244,25 @@
                     showToast('Кэш очищен!', 'success');
                     setTimeout(() => location.reload(), 1000);
                 }
+            });
+        }
+
+        // Initialize Theme Manager
+        ThemeManager.init();
+        // Apply saved theme
+        ThemeManager.apply(settings.theme);
+
+        // Initialize i18n (language system)
+        if (window.i18n) {
+            i18n.init();
+
+            // Add click handlers for language buttons
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const lang = btn.dataset.lang;
+                    i18n.setLanguage(lang);
+                    showToast(t('toast.langChanged'), 'info');
+                });
             });
         }
     }
@@ -457,12 +543,14 @@
     };
 
     function initElements() {
-        elements.landingPage = $('#landing-page');
+        elements.landingPage = $('#landing-page') || $('#landing-section');
         elements.appLayout = $('#app-layout');
         elements.sidebar = $('#sidebar');
-        elements.navItems = $$('.nav-item');
-        elements.views = $$('.app-view');
-        elements.modals = $$('.modal-overlay');
+        elements.navItems = $$('.nav-item') || [];
+        elements.views = $$('.app-view') || [];
+        elements.modals = $$('.modal-overlay') || [];
+
+        console.log('Navigation items found:', elements.navItems.length);
     }
 
     async function showView(viewName, withTransition = true) {
@@ -482,6 +570,15 @@
                 view.classList.add('glitch-in');
             }
         });
+
+        // Apply typing glitch effect to view title
+        const targetView = $(`#view-${viewName}`);
+        if (targetView) {
+            const title = targetView.querySelector('.view-title');
+            if (title) {
+                typeGlitchEffect(title);
+            }
+        }
 
         // Initialize 3D Constructor when switching to it
         if (viewName === 'constructor' && window.Constructor3D) {
@@ -504,6 +601,58 @@
             }, 100);
         }
     }
+
+    // ===========================
+    // TYPING GLITCH EFFECT
+    // ===========================
+    const glitchChars = '!@#$%^&*()_+-=[]{}|;:,.<>?/~`АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя0123456789';
+
+    function typeGlitchEffect(element) {
+        if (!element || element.dataset.typing === 'true') return;
+
+        const originalText = element.dataset.originalText || element.textContent;
+        element.dataset.originalText = originalText;
+        element.dataset.typing = 'true';
+
+        let currentIndex = 0;
+        const chars = originalText.split('');
+        element.textContent = '';
+        element.classList.add('typing-active');
+
+        const typeInterval = setInterval(() => {
+            if (currentIndex >= chars.length) {
+                clearInterval(typeInterval);
+                element.textContent = originalText;
+                element.dataset.typing = 'false';
+                element.classList.remove('typing-active');
+
+                // Add final glitch flash
+                element.classList.add('glitch-flash-once');
+                setTimeout(() => element.classList.remove('glitch-flash-once'), 200);
+                return;
+            }
+
+            // Show glitch characters before revealing the real one
+            const glitchCount = 3;
+            let glitchStep = 0;
+
+            const glitchInterval = setInterval(() => {
+                if (glitchStep >= glitchCount) {
+                    clearInterval(glitchInterval);
+                    element.textContent = originalText.substring(0, currentIndex + 1);
+                    currentIndex++;
+                    return;
+                }
+
+                const randomChar = glitchChars[Math.floor(Math.random() * glitchChars.length)];
+                element.textContent = originalText.substring(0, currentIndex) + randomChar;
+                glitchStep++;
+            }, 30);
+
+        }, 80);
+    }
+
+    window.typeGlitchEffect = typeGlitchEffect;
 
     function initNavigation() {
         elements.navItems.forEach(item => {
@@ -612,6 +761,44 @@
             });
         });
     }
+
+    // ===========================
+    // MEME MODAL
+    // ===========================
+    let currentModalMeme = null;
+
+    function openMemeModal(meme) {
+        currentModalMeme = meme;
+        const modal = $('#modal-meme-view');
+        const image = $('#meme-modal-image');
+        const caption = $('#meme-modal-caption');
+        const likeBtn = $('#meme-modal-like');
+        const dislikeBtn = $('#meme-modal-dislike');
+
+        if (!modal || !image) return;
+
+        image.src = meme.image_path;
+        if (caption) caption.textContent = meme.caption || '';
+        if (likeBtn) likeBtn.querySelector('.vote-count').textContent = meme.like_count || 0;
+        if (dislikeBtn) dislikeBtn.querySelector('.vote-count').textContent = meme.dislike_count || 0;
+
+        modal.classList.remove('hidden');
+
+        // Close on background click
+        modal.onclick = (e) => {
+            if (e.target === modal) closeMemeModal();
+        };
+    }
+
+    function closeMemeModal() {
+        const modal = $('#modal-meme-view');
+        if (modal) modal.classList.add('hidden');
+        currentModalMeme = null;
+    }
+
+    // Make functions globally available
+    window.openMemeModal = openMemeModal;
+    window.closeMemeModal = closeMemeModal;
 
     // ===========================
     // SIDEBAR TOGGLE
@@ -1202,6 +1389,147 @@
     window.ProfileUI = ProfileUI;
 
     // ===========================
+    // CHAT ROOMS UI MODULE
+    // ===========================
+    const ChatRoomsUI = {
+        rooms: [],
+        currentRoomId: null,
+        currentUserId: null,
+
+        init() {
+            $('#btn-send-message')?.addEventListener('click', () => this.sendMessage());
+            $('#chat-message-input')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.sendMessage();
+            });
+        },
+
+        async loadRooms() {
+            try {
+                const res = await fetch(`${API_BASE}/api/chat-rooms`, { credentials: 'include' });
+                const data = await res.json();
+
+                if (data.success) {
+                    this.rooms = data.rooms;
+                    this.renderRooms();
+                }
+            } catch (error) {
+                console.error('Failed to load rooms:', error);
+            }
+        },
+
+        renderRooms() {
+            const container = $('#rooms-container');
+            if (!container) return;
+
+            container.innerHTML = this.rooms.map(room => `
+                <div class="room-item ${room.id === this.currentRoomId ? 'active' : ''}" 
+                     onclick="ChatRoomsUI.selectRoom(${room.id})">
+                    <div class="room-color" style="background:${room.color}"></div>
+                    <span class="room-name">${room.name}</span>
+                </div>
+            `).join('');
+        },
+
+        async selectRoom(roomId) {
+            this.currentRoomId = roomId;
+            const room = this.rooms.find(r => r.id === roomId);
+
+            // Update header
+            const nameEl = $('#current-room-name');
+            if (nameEl) nameEl.textContent = room ? room.name : 'Комната';
+
+            // Enable input
+            const input = $('#chat-message-input');
+            const btn = $('#btn-send-message');
+            if (input) input.disabled = false;
+            if (btn) btn.disabled = false;
+
+            // Update active state
+            this.renderRooms();
+
+            // Load messages
+            await this.loadMessages();
+        },
+
+        async loadMessages() {
+            if (!this.currentRoomId) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/chat-rooms/${this.currentRoomId}/messages`, { credentials: 'include' });
+                const data = await res.json();
+
+                const container = $('#messages-container');
+                if (!container) return;
+
+                if (data.success && data.messages.length > 0) {
+                    container.innerHTML = data.messages.map(msg => this.renderMessage(msg)).join('');
+                    container.scrollTop = container.scrollHeight;
+                } else {
+                    container.innerHTML = '<div class="no-messages">Нет сообщений. Напишите первым!</div>';
+                }
+            } catch (error) {
+                console.error('Failed to load messages:', error);
+            }
+        },
+
+        renderMessage(msg) {
+            const isOwn = msg.user_id === this.currentUserId || msg.user_id === 'anonymous';
+            const time = new Date(msg.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
+            return `
+                <div class="message-bubble ${isOwn ? 'own' : ''}">
+                    <div class="message-header">
+                        <span class="message-username">${this.escapeHtml(msg.username)}</span>
+                        <span class="message-time">${time}</span>
+                    </div>
+                    <div class="message-content">${this.escapeHtml(msg.content)}</div>
+                </div>
+            `;
+        },
+
+        async sendMessage() {
+            const input = $('#chat-message-input');
+            if (!input || !this.currentRoomId) return;
+
+            const content = input.value.trim();
+            if (!content) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/chat-rooms/${this.currentRoomId}/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ content })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    input.value = '';
+                    // Add message to container
+                    const container = $('#messages-container');
+                    if (container) {
+                        const noMessages = container.querySelector('.no-messages');
+                        if (noMessages) noMessages.remove();
+                        container.insertAdjacentHTML('beforeend', this.renderMessage(data.message));
+                        container.scrollTop = container.scrollHeight;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to send message:', error);
+                showToast('Ошибка отправки', 'error');
+            }
+        },
+
+        escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    };
+
+    window.ChatRoomsUI = ChatRoomsUI;
+
+    // ===========================
     // LOGS UI MODULE
     // ===========================
     const LogsUI = {
@@ -1567,6 +1895,8 @@
             this.captionInput = $('#meme-caption');
             this.submitBtn = $('#meme-submit-btn');
             this.sortBtns = $$('.sort-btn');
+            this.searchInput = $('#meme-search-input');
+            this.searchTerm = '';
 
             if (!this.container) return;
 
@@ -1580,6 +1910,16 @@
             // Sort buttons
             this.sortBtns.forEach(btn => {
                 btn.addEventListener('click', () => this.handleSort(btn));
+            });
+
+            // Search input
+            let searchDebounce = null;
+            this.searchInput?.addEventListener('input', (e) => {
+                clearTimeout(searchDebounce);
+                searchDebounce = setTimeout(() => {
+                    this.searchTerm = e.target.value.toLowerCase().trim();
+                    this.render();
+                }, 300);
             });
 
             // Load initial memes
@@ -1712,6 +2052,8 @@
         render() {
             if (!this.container) return;
 
+            const filtered = this.getFilteredMemes ? this.getFilteredMemes() : this.memes;
+
             if (this.memes.length === 0) {
                 this.container.innerHTML = `
                     <div class="meme-feed-empty">
@@ -1722,7 +2064,17 @@
                 return;
             }
 
-            this.container.innerHTML = this.memes.map(meme => this.renderMemeItem(meme)).join('');
+            if (filtered.length === 0) {
+                this.container.innerHTML = `
+                    <div class="meme-feed-empty">
+                        <div class="empty-icon">🔍</div>
+                        <p>Ничего не найдено по запросу "${this.searchTerm}"</p>
+                    </div>
+                `;
+                return;
+            }
+
+            this.container.innerHTML = filtered.map(meme => this.renderMemeItem(meme)).join('');
 
             // Add vote listeners
             this.container.querySelectorAll('.vote-btn').forEach(btn => {
@@ -1825,6 +2177,7 @@
         },
 
         escapeHtml(text) {
+            if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
@@ -1854,22 +2207,32 @@
             this.currentMeme = meme;
             if (!this.heroContainer) return;
 
+            // Update stats cards
+            const likesEl = $('#meme-day-likes');
+            const rankEl = $('#meme-day-rank');
+
             if (!meme) {
                 this.heroContainer.innerHTML = `
                     <div class="meme-hero-empty">
-                        <div class="empty-icon">🏆</div>
+                        <div class="empty-icon trophy-bounce">🏆</div>
                         <p>Пока нет мема дня</p>
                         <span class="empty-hint">Загрузи первый мем и собери лайки!</span>
                     </div>
                 `;
+                if (likesEl) likesEl.textContent = '0';
+                if (rankEl) rankEl.textContent = '—';
                 return;
             }
 
+            // Update stats
+            if (likesEl) likesEl.textContent = meme.like_count || 0;
+            if (rankEl) rankEl.textContent = '#1';
+
             this.heroContainer.innerHTML = `
-                <div class="meme-hero-content">
-                    <div class="meme-hero-badge">🏆 МЕМ ДНЯ</div>
+                <div class="meme-hero-content animated-hero">
+                    <div class="meme-hero-badge pulse-glow">🏆 МЕМ ДНЯ</div>
                     <div class="meme-hero-image-container">
-                        <img src="${meme.image_path}" alt="Meme of the Day" class="meme-hero-image">
+                        <img src="${meme.image_path}" alt="Meme of the Day" class="meme-hero-image" onclick="openMemeModal && openMemeModal({image_path:'${meme.image_path}',caption:'${(meme.caption || '').replace(/'/g, "\\'")}',like_count:${meme.like_count},dislike_count:${meme.dislike_count}})">
                     </div>
                     <div class="meme-hero-info">
                         ${meme.caption ? `<div class="meme-hero-caption">${MemeFeed.escapeHtml(meme.caption)}</div>` : ''}
@@ -1948,6 +2311,7 @@
         AdminsUI.init();
         ServerFoldersUI.init();
         ProfileUI.init();
+        ChatRoomsUI.init();
 
         // Bind login/logout buttons
         $('#btn-login')?.addEventListener('click', () => Auth.login());
@@ -1968,24 +2332,41 @@
         if (urlParams.get('auth_success')) {
             // Clean URL and skip intro - go straight to app
             window.history.replaceState({}, '', window.location.pathname);
+            // Save auth state to localStorage
+            localStorage.setItem('isAuthenticated', 'true');
             showToast('Успешная авторизация через Discord!', 'success');
             // Skip intro, show app directly
-            const landing = $('#landing-page');
-            const app = $('#app-main');
+            const intro = $('#intro-screen');
+            const landing = $('#landing-section');
+            const app = $('#app-layout');
+            if (intro) intro.classList.add('hidden');
             if (landing) landing.classList.add('hidden');
             if (app) app.classList.remove('hidden');
+            // Fetch user info
+            checkSessionInBackground();
             return; // Don't run intro
         }
         if (urlParams.get('auth_error')) {
             showToast('Ошибка авторизации: ' + urlParams.get('auth_error'), 'error');
             window.history.replaceState({}, '', window.location.pathname);
+            localStorage.removeItem('isAuthenticated');
         }
 
-        // Always run intro - check session in background
-        Intro.init();
-
-        // Check session in background (non-blocking)
-        checkSessionInBackground();
+        // Check if user was previously authenticated
+        if (localStorage.getItem('isAuthenticated') === 'true') {
+            // User was logged in before - skip intro, go to app
+            const intro = $('#intro-screen');
+            const landing = $('#landing-section');
+            const app = $('#app-layout');
+            if (intro) intro.classList.add('hidden');
+            if (landing) landing.classList.add('hidden');
+            if (app) app.classList.remove('hidden');
+            // Verify session in background
+            checkSessionInBackground();
+        } else {
+            // Not authenticated - show intro
+            Intro.init();
+        }
     }
 
     function checkSessionInBackground() {
@@ -1996,10 +2377,42 @@
                     Auth.isAuthenticated = true;
                     Auth.currentUser = data.user;
                     Auth.updateUI();
+                    localStorage.setItem('isAuthenticated', 'true');
+                } else {
+                    localStorage.removeItem('isAuthenticated');
                 }
             })
-            .catch(() => { /* ignore errors */ });
+            .catch(() => { localStorage.removeItem('isAuthenticated'); });
     }
+
+    // Logout function - return to landing
+    function logout() {
+        localStorage.removeItem('isAuthenticated');
+        // Call server logout
+        fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' })
+            .catch(() => { });
+        // Show landing page
+        const intro = $('#intro-screen');
+        const landing = $('#landing-section');
+        const app = $('#app-layout');
+        if (app) app.classList.add('hidden');
+        if (intro) intro.classList.remove('hidden');
+        if (landing) landing.classList.remove('hidden');
+        showToast('Вы вышли из системы', 'info');
+        // Reload to reset state
+        setTimeout(() => window.location.reload(), 500);
+    }
+
+    // Expose logout globally
+    window.logout = logout;
+
+    // Bind logout button
+    document.addEventListener('DOMContentLoaded', () => {
+        const logoutBtn = document.getElementById('btn-logout');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', logout);
+        }
+    });
 
     // Load memes when viewing memes section
     const originalShowView = showView;
@@ -2020,6 +2433,8 @@
             AdminsUI.load();
         } else if (viewName === 'profile') {
             ProfileUI.load();
+        } else if (viewName === 'chat-rooms') {
+            ChatRoomsUI.loadRooms();
         }
     };
 

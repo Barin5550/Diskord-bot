@@ -15,7 +15,7 @@ const http = require('http');
 const https = require('https');
 const WebSocket = require('ws');
 const session = require('express-session');
-const { initDatabase, memeDB, foldersDB, logsDB, botsDB, adminsDB, serverFoldersDB, profilesDB } = require('./database');
+const { initDatabase, memeDB, foldersDB, logsDB, botsDB, adminsDB, serverFoldersDB, profilesDB, chatRoomsDB } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -969,6 +969,60 @@ app.delete('/api/profile/discord', (req, res) => {
     } catch (error) {
         console.error('Error disconnecting Discord:', error);
         res.status(500).json({ success: false, error: 'Failed to disconnect Discord' });
+    }
+});
+
+// ===========================
+// CHAT ROOMS API
+// ===========================
+
+// Get all rooms
+app.get('/api/chat-rooms', (req, res) => {
+    try {
+        const rooms = chatRoomsDB.getRooms();
+        res.json({ success: true, rooms });
+    } catch (error) {
+        console.error('Error getting chat rooms:', error);
+        res.status(500).json({ success: false, error: 'Failed to get rooms' });
+    }
+});
+
+// Get messages for a room
+app.get('/api/chat-rooms/:roomId/messages', (req, res) => {
+    try {
+        const roomId = parseInt(req.params.roomId);
+        const limit = parseInt(req.query.limit) || 50;
+        const cursor = req.query.cursor ? parseInt(req.query.cursor) : null;
+
+        const result = chatRoomsDB.getMessages(roomId, limit, cursor);
+        res.json({ success: true, ...result });
+    } catch (error) {
+        console.error('Error getting messages:', error);
+        res.status(500).json({ success: false, error: 'Failed to get messages' });
+    }
+});
+
+// Send message to a room
+app.post('/api/chat-rooms/:roomId/messages', (req, res) => {
+    try {
+        const roomId = parseInt(req.params.roomId);
+        const { content } = req.body;
+        const userId = req.session?.user?.id || 'anonymous';
+        const username = req.session?.user?.username || 'Аноним';
+
+        if (!content || !content.trim()) {
+            return res.status(400).json({ success: false, error: 'Message content required' });
+        }
+
+        const message = chatRoomsDB.addMessage(roomId, userId, username, content.trim());
+
+        // Broadcast to websocket clients
+        broadcast('new_chat_message', { roomId, message });
+
+        res.json({ success: true, message });
+    } catch (error) {
+        console.error('Error sending message:', error);
+        res.status(500).json({ success: false, error: 'Failed to send message' });
     }
 });
 

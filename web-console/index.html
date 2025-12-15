@@ -73,64 +73,82 @@
         <div class="transition-code"></div>
     </div>
 
-    <!-- LANDING PAGE -->
-    <section id="landing-page" class="hidden">
-        <header class="landing-header">
-            <div class="logo">
-                <div class="logo-icon">B</div>
-                <span class="logo-text">BotConsole</span>
-            </div>
-            <button id="btn-login" class="btn btn-primary">Войти</button>
-        </header>
+    <!-- LANDING PAGE - TRON STYLE -->
+    <section id="landing-page" class="hidden tron-landing">
+        <!-- Grid Background -->
+        <div class="tron-grid"></div>
 
-        <main class="landing-hero">
-            <div class="hero-badge"><span>✨</span> Admin Dashboard v2.0</div>
-            <h1 class="hero-title">Управляй ботом как профи</h1>
-            <p class="hero-subtitle">Мощная админ-консоль для Discord/Telegram бота.
-                Мониторинг, модерация, аналитика и развлечения в реальном времени.</p>
-            <div class="hero-actions">
-                <button id="btn-access" class="btn btn-primary">🚀 Открыть консоль</button>
-            </div>
-        </main>
+        <!-- Floating Lines -->
+        <div class="tron-line tron-line-1"></div>
+        <div class="tron-line tron-line-2"></div>
+        <div class="tron-line tron-line-3"></div>
 
-        <!-- Features Grid -->
-        <section class="landing-features">
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">📊</div>
-                    <h3>Аналитика</h3>
-                    <p>Графики активности, статистика сообщений и топ пользователей</p>
+        <!-- Main Content -->
+        <div class="tron-content">
+            <!-- Logo -->
+            <div class="tron-logo">
+                <div class="tron-logo-hexagon">
+                    <span>B</span>
                 </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🛡️</div>
-                    <h3>Модерация</h3>
-                    <p>Управление пользователями, автомодерация и логирование</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🎮</div>
-                    <h3>Игры</h3>
-                    <p>Tetris, Snake и другие мини-игры прямо в консоли</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🔧</div>
-                    <h3>3D Конструктор</h3>
-                    <p>Создавай 3D модели в браузере с Maya-style интерфейсом</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🎭</div>
-                    <h3>Мемы</h3>
-                    <p>Галерея мемов с лайками и загрузкой своих шедевров</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">⚙️</div>
-                    <h3>Настройки</h3>
-                    <p>Полная кастомизация: тема, звуки, анимации</p>
+                <div class="tron-logo-text">
+                    <span class="tron-title">BOT</span>
+                    <span class="tron-subtitle">CONSOLE</span>
                 </div>
             </div>
-        </section>
 
-        <footer class="landing-footer">
-            <p>Made with 💛 by BotConsole Team</p>
+            <!-- Tagline -->
+            <p class="tron-tagline">SYSTEM INTERFACE v2.0</p>
+
+            <!-- Status Indicators -->
+            <div class="tron-status">
+                <div class="tron-status-item">
+                    <span class="tron-dot active"></span>
+                    <span>ONLINE</span>
+                </div>
+                <div class="tron-status-item">
+                    <span class="tron-dot"></span>
+                    <span>56 SERVERS</span>
+                </div>
+                <div class="tron-status-item">
+                    <span class="tron-dot"></span>
+                    <span>1.2K USERS</span>
+                </div>
+            </div>
+
+            <!-- Access Button -->
+            <button id="btn-access" class="tron-access-btn">
+                <span class="tron-btn-border"></span>
+                <span class="tron-btn-text">[ INITIALIZE CONSOLE ]</span>
+            </button>
+
+            <!-- Features Row -->
+            <div class="tron-features">
+                <div class="tron-feature">
+                    <span class="tron-feature-icon">◈</span>
+                    <span>ANALYTICS</span>
+                </div>
+                <div class="tron-feature-divider"></div>
+                <div class="tron-feature">
+                    <span class="tron-feature-icon">◈</span>
+                    <span>MODERATION</span>
+                </div>
+                <div class="tron-feature-divider"></div>
+                <div class="tron-feature">
+                    <span class="tron-feature-icon">◈</span>
+                    <span>3D CONSTRUCTOR</span>
+                </div>
+                <div class="tron-feature-divider"></div>
+                <div class="tron-feature">
+                    <span class="tron-feature-icon">◈</span>
+                    <span>MEMES</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="tron-footer">
+            <div class="tron-footer-line"></div>
+            <p>TRON INTERFACE // AUTHORIZED ACCESS ONLY</p>
         </footer>
     </section>
 
@@ -139,8 +157,9 @@
         <header class="app-header">
             <div class="header-left">
                 <button id="btn-menu" class="btn btn-ghost btn-icon">☰</button>
-                <div class="logo">
-                    <div class="logo-icon">B</div><span class="logo-text">BotConsole</span>
+                <div class="logo neon-border">
+                    <div class="logo-icon glitch-text" data-text="B">B</div><span
+                        class="logo-text neon-yellow">BotConsole</span>
                 </div>
             </div>
             <div class="header-right">
@@ -154,37 +173,46 @@
             </div>
         </header>
 
-        <div class="main-container">
-            <aside id="sidebar" class="sidebar">
+        <!-- Cyber Loading Bar -->
+        <div class="cyber-loading"></div>
+
+        <div class="main-container hex-bg">
+            <aside id="sidebar" class="sidebar data-stream">
                 <div class="sidebar-section">
-                    <div class="sidebar-title">Main</div>
+                    <div class="sidebar-title terminal-text">Main</div>
                     <button class="nav-item active" data-view="dashboard"><span class="nav-icon">▣</span>
-                        Dashboard</button>
+                        <span data-i18n="nav.dashboard">Dashboard</span></button>
                     <button class="nav-item" data-view="analytics"><span class="nav-icon">📊</span>
-                        Аналитика</button>
+                        <span data-i18n="nav.analytics">Аналитика</span></button>
                     <button class="nav-item" data-view="moderation"><span class="nav-icon">🛡️</span>
-                        Модерация</button>
-                    <button class="nav-item" data-view="logs-messages"><span class="nav-icon">💬</span> Логи
-                        сообщений</button>
-                    <button class="nav-item" data-view="logs-actions"><span class="nav-icon">⚡</span> Логи
-                        действий</button>
-                    <button class="nav-item" data-view="folders"><span class="nav-icon">🗂️</span> Server
-                        Folders</button>
+                        <span data-i18n="nav.moderation">Модерация</span></button>
+                    <button class="nav-item" data-view="logs-messages"><span class="nav-icon">💬</span>
+                        <span data-i18n="logs.messages">Логи сообщений</span></button>
+                    <button class="nav-item" data-view="logs-actions"><span class="nav-icon">⚡</span>
+                        <span data-i18n="logs.actions">Логи действий</span></button>
+                    <button class="nav-item" data-view="folders"><span class="nav-icon">🗂️</span>
+                        <span data-i18n="nav.folders">Server Folders</span></button>
                 </div>
                 <div class="sidebar-section">
-                    <div class="sidebar-title">🎮 Игры</div>
-                    <button class="nav-item" data-view="tetris"><span class="nav-icon">🧱</span> Tetris</button>
-                    <button class="nav-item" data-view="snake"><span class="nav-icon">🐍</span> Snake</button>
+                    <div class="sidebar-title">🎮 Games</div>
+                    <button class="nav-item" data-view="tetris"><span class="nav-icon">🧱</span> <span
+                            data-i18n="nav.tetris">Tetris</span></button>
+                    <button class="nav-item" data-view="snake"><span class="nav-icon">🐍</span> <span
+                            data-i18n="nav.snake">Snake</span></button>
                 </div>
                 <div class="sidebar-section">
-                    <div class="sidebar-title">😂 Мемы & Чаты</div>
-                    <button class="nav-item" data-view="memes"><span class="nav-icon">🎭</span> Мемы</button>
-                    <button class="nav-item" data-view="meme-of-day"><span class="nav-icon">⭐</span> Мем дня</button>
+                    <div class="sidebar-title">😂 Memes & Chats</div>
+                    <button class="nav-item" data-view="memes"><span class="nav-icon">🎭</span> <span
+                            data-i18n="nav.memes">Мемы</span></button>
+                    <button class="nav-item" data-view="meme-of-day"><span class="nav-icon">⭐</span> <span
+                            data-i18n="nav.memeOfDay">Мем дня</span></button>
+                    <button class="nav-item" data-view="chat-rooms"><span class="nav-icon">💬</span> <span
+                            data-i18n="nav.chat">Чаты</span></button>
                 </div>
                 <div class="sidebar-section">
-                    <div class="sidebar-title">Творчество</div>
-                    <button class="nav-item" data-view="constructor"><span class="nav-icon">🔧</span> 3D
-                        Конструктор</button>
+                    <div class="sidebar-title">Creative</div>
+                    <button class="nav-item" data-view="constructor"><span class="nav-icon">🔧</span>
+                        <span data-i18n="nav.constructor">3D Конструктор</span></button>
                     <button class="nav-item" data-view="gallery3d"><span class="nav-icon">🖼️</span> 3D
                         Галерея</button>
                     <button class="nav-item" data-view="engineer-tutorial"><span class="nav-icon">📖</span> Курс
@@ -204,9 +232,44 @@
                 <!-- Dashboard -->
                 <section id="view-dashboard" class="app-view">
                     <div class="view-header">
-                        <h1 class="view-title">Dashboard</h1>
-                        <p class="view-subtitle">Monitor bot performance</p>
+                        <h1 class="view-title">📊 Dashboard</h1>
+                        <p class="view-subtitle">Мониторинг бота в реальном времени</p>
                     </div>
+
+                    <!-- Stats Row -->
+                    <div class="dashboard-stats">
+                        <div class="dash-stat-card animated-stat">
+                            <div class="dash-stat-icon">👥</div>
+                            <div class="dash-stat-info">
+                                <span class="dash-stat-value">1,234</span>
+                                <span class="dash-stat-label">Пользователей</span>
+                            </div>
+                            <span class="dash-stat-change positive">↑ 12%</span>
+                        </div>
+                        <div class="dash-stat-card animated-stat">
+                            <div class="dash-stat-icon">🖥️</div>
+                            <div class="dash-stat-info">
+                                <span class="dash-stat-value">56</span>
+                                <span class="dash-stat-label">Серверов</span>
+                            </div>
+                            <span class="dash-stat-change positive">↑ 3</span>
+                        </div>
+                        <div class="dash-stat-card animated-stat">
+                            <div class="dash-stat-icon">⚡</div>
+                            <div class="dash-stat-info">
+                                <span class="dash-stat-value">847</span>
+                                <span class="dash-stat-label">Команд сегодня</span>
+                            </div>
+                        </div>
+                        <div class="dash-stat-card animated-stat">
+                            <div class="dash-stat-icon pulse-green">●</div>
+                            <div class="dash-stat-info">
+                                <span class="dash-stat-value">Online</span>
+                                <span class="dash-stat-label">99.9% uptime</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="dashboard-grid">
                         <div class="card stat-card">
                             <div class="card-title">Total Users</div>
@@ -276,6 +339,56 @@
                                         <div class="setting-label">Welcome Messages</div>
                                     </div><label class="toggle"><input type="checkbox" id="bot-welcome-messages"><span
                                             class="toggle-slider"></span></label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="card">
+                            <div class="card-title">⚡ Быстрые действия</div>
+                            <div class="quick-actions">
+                                <button class="quick-action-btn" onclick="showView('memes')">
+                                    <span class="qa-icon">🎭</span>
+                                    <span>Мемы</span>
+                                </button>
+                                <button class="quick-action-btn" onclick="showView('analytics')">
+                                    <span class="qa-icon">📈</span>
+                                    <span>Аналитика</span>
+                                </button>
+                                <button class="quick-action-btn" onclick="showView('moderation')">
+                                    <span class="qa-icon">🛡️</span>
+                                    <span>Модерация</span>
+                                </button>
+                                <button class="quick-action-btn" onclick="showView('logs-messages')">
+                                    <span class="qa-icon">📝</span>
+                                    <span>Логи</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Activity Feed -->
+                        <div class="card" style="grid-column: span 2;">
+                            <div class="card-title">📡 Последняя активность</div>
+                            <div class="activity-feed">
+                                <div class="activity-item">
+                                    <span class="activity-icon">👋</span>
+                                    <span class="activity-text">User123 присоединился к серверу</span>
+                                    <span class="activity-time">2 мин назад</span>
+                                </div>
+                                <div class="activity-item">
+                                    <span class="activity-icon">⚡</span>
+                                    <span class="activity-text">Команда !help выполнена</span>
+                                    <span class="activity-time">5 мин назад</span>
+                                </div>
+                                <div class="activity-item">
+                                    <span class="activity-icon">🎭</span>
+                                    <span class="activity-text">Новый мем загружен</span>
+                                    <span class="activity-time">12 мин назад</span>
+                                </div>
+                                <div class="activity-item">
+                                    <span class="activity-icon">🛡️</span>
+                                    <span class="activity-text">Спам сообщение заблокировано</span>
+                                    <span class="activity-time">1 ч назад</span>
                                 </div>
                             </div>
                         </div>
@@ -533,24 +646,39 @@
                 <!-- Help -->
                 <section id="view-help" class="app-view hidden">
                     <div class="view-header">
-                        <h1 class="view-title">Help Center</h1>
-                        <p class="view-subtitle">Learn the console</p>
+                        <h1 class="view-title">❓ Центр помощи</h1>
+                        <p class="view-subtitle">Руководство по использованию консоли</p>
                     </div>
                     <div class="help-grid">
-                        <div class="card help-card">
+                        <div class="card help-card" onclick="showView('dashboard')">
                             <div class="help-icon">📊</div>
                             <h3>Dashboard</h3>
-                            <p>Monitor performance</p>
+                            <p>Главная панель мониторинга. Статистика, настройки бота и быстрые действия.</p>
                         </div>
-                        <div class="card help-card">
+                        <div class="card help-card" onclick="showView('moderation')">
                             <div class="help-icon">🛡️</div>
-                            <h3>Moderation</h3>
-                            <p>Manage users</p>
+                            <h3>Модерация</h3>
+                            <p>Управление администраторами. Добавление, удаление и настройка ролей.</p>
                         </div>
-                        <div class="card help-card">
+                        <div class="card help-card" onclick="showView('logs-messages')">
                             <div class="help-icon">📋</div>
-                            <h3>Logs</h3>
-                            <p>Track activities</p>
+                            <h3>Логи</h3>
+                            <p>История сообщений и действий. Отслеживание активности на серверах.</p>
+                        </div>
+                        <div class="card help-card" onclick="showView('memes')">
+                            <div class="help-icon">🎭</div>
+                            <h3>Мемы</h3>
+                            <p>Лента мемов. Загружай, голосуй и смотри мем дня!</p>
+                        </div>
+                        <div class="card help-card" onclick="showView('analytics')">
+                            <div class="help-icon">📈</div>
+                            <h3>Аналитика</h3>
+                            <p>Графики активности, топ пользователей и статистика серверов.</p>
+                        </div>
+                        <div class="card help-card" onclick="showView('constructor')">
+                            <div class="help-icon">🔧</div>
+                            <h3>3D Конструктор</h3>
+                            <p>Создавай 3D модели прямо в браузере и экспортируй в GLTF.</p>
                         </div>
                     </div>
                 </section>
@@ -582,10 +710,16 @@
                         </form>
                     </div>
 
-                    <!-- Sort Toggle -->
-                    <div class="meme-sort-controls">
-                        <button class="sort-btn active" data-sort="new">🕐 Новые</button>
-                        <button class="sort-btn" data-sort="popular">🔥 Популярные</button>
+                    <!-- Controls: Sort + Search -->
+                    <div class="meme-controls">
+                        <div class="meme-sort-controls">
+                            <button class="sort-btn active" data-sort="new">🕐 Новые</button>
+                            <button class="sort-btn" data-sort="popular">🔥 Популярные</button>
+                        </div>
+                        <div class="meme-search">
+                            <input type="text" id="meme-search-input" class="input-field"
+                                placeholder="🔍 Поиск по подписи...">
+                        </div>
                     </div>
 
                     <!-- Meme Feed -->
@@ -595,27 +729,59 @@
                             <p>Пока нет мемов. Будь первым!</p>
                         </div>
                     </div>
+
+                    <!-- Load More -->
+                    <div class="meme-load-more">
+                        <button id="meme-load-more-btn" class="btn btn-ghost" style="display:none;">Загрузить
+                            ещё</button>
+                    </div>
                 </section>
 
                 <!-- Meme of the Day -->
                 <section id="view-meme-of-day" class="app-view hidden">
                     <div class="view-header">
-                        <h1 class="view-title">⭐ Мем дня</h1>
-                        <p class="view-subtitle">Мем с наибольшим количеством лайков</p>
+                        <h1 class="view-title meme-day-title">
+                            <span class="crown-icon">👑</span>
+                            Мем дня
+                            <span class="crown-icon">👑</span>
+                        </h1>
+                        <p class="view-subtitle">Мем с наибольшим количеством лайков сегодня</p>
                     </div>
+
+                    <!-- Confetti effect container -->
+                    <div id="confetti-container" class="confetti-container"></div>
 
                     <!-- Hero Meme -->
                     <div id="meme-of-day-hero" class="meme-of-day-hero">
                         <div class="meme-hero-empty">
-                            <div class="empty-icon">🏆</div>
+                            <div class="empty-icon trophy-bounce">🏆</div>
                             <p>Пока нет мема дня</p>
                             <span class="empty-hint">Загрузи первый мем и собери лайки!</span>
                         </div>
                     </div>
 
+                    <!-- Stats Row -->
+                    <div class="meme-day-stats">
+                        <div class="stat-card animated-stat">
+                            <span class="stat-icon">👍</span>
+                            <span id="meme-day-likes" class="stat-value">0</span>
+                            <span class="stat-label">Лайков</span>
+                        </div>
+                        <div class="stat-card animated-stat">
+                            <span class="stat-icon">👀</span>
+                            <span id="meme-day-views" class="stat-value">—</span>
+                            <span class="stat-label">Просмотров</span>
+                        </div>
+                        <div class="stat-card animated-stat">
+                            <span class="stat-icon">🏅</span>
+                            <span id="meme-day-rank" class="stat-value">#1</span>
+                            <span class="stat-label">Рейтинг</span>
+                        </div>
+                    </div>
+
                     <!-- Top 5 -->
                     <div class="card top-memes-card">
-                        <div class="card-title">🔥 Топ-5 мемов</div>
+                        <div class="card-title">🔥 Топ-5 мемов недели</div>
                         <div id="top-memes-list" class="top-memes-list">
                             <div class="top-memes-empty">Недостаточно мемов для рейтинга</div>
                         </div>
@@ -1737,6 +1903,37 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- Chat Rooms -->
+                <section id="view-chat-rooms" class="app-view hidden">
+                    <div class="view-header">
+                        <h1 class="view-title">💬 Чаты</h1>
+                        <p class="view-subtitle">Общайтесь в разных комнатах</p>
+                    </div>
+
+                    <div class="chat-container">
+                        <!-- Room List -->
+                        <div class="room-list">
+                            <div class="room-list-header">Комнаты</div>
+                            <div id="rooms-container"></div>
+                        </div>
+
+                        <!-- Chat Area -->
+                        <div class="chat-area">
+                            <div class="chat-header">
+                                <span id="current-room-name">Выберите комнату</span>
+                            </div>
+                            <div id="messages-container" class="messages-container">
+                                <div class="no-messages">Выберите комнату для начала общения</div>
+                            </div>
+                            <div class="chat-input-area">
+                                <input type="text" id="chat-message-input" class="input-field"
+                                    placeholder="Введите сообщение..." disabled>
+                                <button id="btn-send-message" class="btn btn-primary" disabled>Отправить</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </main>
         </div>
     </div>
@@ -1745,55 +1942,121 @@
     <div id="modal-settings" class="modal-overlay hidden">
         <div class="modal-card settings-modal">
             <button class="modal-close btn btn-ghost">×</button>
-            <h2 class="modal-title">⚙️ Настройки</h2>
+            <h2 class="modal-title" data-i18n="settings.title">⚙️ Настройки</h2>
 
             <div class="settings-section">
-                <div class="settings-section-title">Интерфейс</div>
+                <div class="settings-section-title" data-i18n="settings.interface">Интерфейс</div>
                 <div class="settings-list">
                     <div class="setting-row">
                         <div>
-                            <div class="setting-label">🚀 Пропустить интро</div>
-                            <div class="setting-description">Отключить анимацию загрузки</div>
+                            <div class="setting-label">🚀 <span data-i18n="settings.skipIntro">Пропустить интро</span>
+                            </div>
+                            <div class="setting-description" data-i18n="settings.skipIntroDesc">Отключить анимацию
+                                загрузки</div>
                         </div>
                         <label class="toggle"><input type="checkbox" id="setting-skip-intro"><span
                                 class="toggle-slider"></span></label>
                     </div>
                     <div class="setting-row">
                         <div>
-                            <div class="setting-label">✨ Анимации</div>
-                            <div class="setting-description">TRON эффекты и переходы</div>
+                            <div class="setting-label">✨ <span data-i18n="settings.animations">Анимации</span></div>
+                            <div class="setting-description" data-i18n="settings.animationsDesc">TRON эффекты и переходы
+                            </div>
                         </div>
                         <label class="toggle"><input type="checkbox" id="setting-animations" checked><span
                                 class="toggle-slider"></span></label>
                     </div>
                     <div class="setting-row">
                         <div>
-                            <div class="setting-label">🔊 Звуковые эффекты</div>
-                            <div class="setting-description">Звуки уведомлений и игр</div>
+                            <div class="setting-label">🔊 <span data-i18n="settings.sound">Звуковые эффекты</span></div>
+                            <div class="setting-description" data-i18n="settings.soundDesc">Звуки уведомлений и игр
+                            </div>
                         </div>
                         <label class="toggle"><input type="checkbox" id="setting-sound"><span
+                                class="toggle-slider"></span></label>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">🔥 <span data-i18n="settings.overkill">Перебор</span></div>
+                            <div class="setting-description" data-i18n="settings.overkillDesc">Экстремальные анимации
+                                везде (осторожно!)</div>
+                        </div>
+                        <label class="toggle"><input type="checkbox" id="setting-overkill"><span
                                 class="toggle-slider"></span></label>
                     </div>
                 </div>
             </div>
 
+            <!-- Theme Selector Section -->
             <div class="settings-section">
-                <div class="settings-section-title">Данные</div>
+                <div class="settings-section-title" data-i18n="settings.theme">🎨 Тема оформления</div>
+                <div class="theme-selector">
+                    <button class="theme-btn active" data-theme="default">
+                        <div class="theme-preview theme-preview-default">
+                            <div class="theme-preview-header"></div>
+                            <div class="theme-preview-content"></div>
+                        </div>
+                        <span class="theme-name" data-i18n="settings.themeTron">TRON</span>
+                        <span class="theme-desc" data-i18n="settings.themeTronDesc">Тёмная неоновая</span>
+                    </button>
+                    <button class="theme-btn" data-theme="light">
+                        <div class="theme-preview theme-preview-light">
+                            <div class="theme-preview-header"></div>
+                            <div class="theme-preview-content"></div>
+                        </div>
+                        <span class="theme-name" data-i18n="settings.themeLight">Светлая</span>
+                        <span class="theme-desc" data-i18n="settings.themeLightDesc">Чистая и минимальная</span>
+                    </button>
+                    <button class="theme-btn" data-theme="cute">
+                        <div class="theme-preview theme-preview-cute">
+                            <div class="theme-preview-header"></div>
+                            <div class="theme-preview-content"></div>
+                        </div>
+                        <span class="theme-name" data-i18n="settings.themeCute">Милая</span>
+                        <span class="theme-desc" data-i18n="settings.themeCuteDesc">Мягкие цвета</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Language Selector Section -->
+            <div class="settings-section">
+                <div class="settings-section-title" data-i18n="settings.language">🌐 Язык</div>
+                <div class="lang-selector">
+                    <button class="lang-btn active" data-lang="ru">
+                        <span class="lang-flag">🇷🇺</span>
+                        <span class="lang-name">Русский</span>
+                    </button>
+                    <button class="lang-btn" data-lang="en">
+                        <span class="lang-flag">🇬🇧</span>
+                        <span class="lang-name">English</span>
+                    </button>
+                    <button class="lang-btn" data-lang="de">
+                        <span class="lang-flag">🇩🇪</span>
+                        <span class="lang-name">Deutsch</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-section-title" data-i18n="settings.data">Данные</div>
                 <div class="settings-list">
                     <div class="setting-row">
                         <div>
-                            <div class="setting-label">🗑️ Очистить кэш</div>
-                            <div class="setting-description">Сбросить сохранённые данные</div>
+                            <div class="setting-label">🗑️ <span data-i18n="settings.clearCache">Очистить кэш</span>
+                            </div>
+                            <div class="setting-description" data-i18n="settings.clearCacheDesc">Сбросить сохранённые
+                                данные</div>
                         </div>
-                        <button class="btn btn-ghost" id="btn-clear-cache"
-                            style="color:var(--color-error)">Очистить</button>
+                        <button class="btn btn-ghost" id="btn-clear-cache" style="color:var(--color-error)"
+                            data-i18n="settings.clear">Очистить</button>
                     </div>
                 </div>
             </div>
 
             <div class="settings-section">
-                <div class="settings-section-title">Аккаунт</div>
-                <button id="btn-logout" class="btn btn-secondary" style="width:100%">🚪 Выйти</button>
+                <div class="settings-section-title">Account</div>
+                <button id="btn-logout" class="btn btn-secondary" style="width:100%" data-i18n="common.logout">🚪
+                    Выйти</button>
             </div>
 
             <div class="settings-footer">
@@ -1812,6 +2075,22 @@
         </div>
     </div>
 
+    <!-- Meme View Modal -->
+    <div id="modal-meme-view" class="modal-overlay hidden">
+        <div class="meme-modal-content">
+            <button class="modal-close btn btn-ghost" onclick="closeMemeModal()">×</button>
+            <img id="meme-modal-image" src="" alt="Meme" class="meme-modal-image">
+            <div class="meme-modal-info">
+                <p id="meme-modal-caption" class="meme-modal-caption"></p>
+                <div class="meme-modal-actions">
+                    <button id="meme-modal-like" class="vote-btn like">👍 <span class="vote-count">0</span></button>
+                    <button id="meme-modal-dislike" class="vote-btn dislike">👎 <span
+                            class="vote-count">0</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Three.js for 3D Constructor -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -1819,6 +2098,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
+    <script src="i18n.js"></script>
     <script src="app.js"></script>
     <script src="tetris.js"></script>
     <script src="snake.js"></script>
