@@ -7827,6 +7827,48 @@ select:focus {
     font-size: 0.9rem;
 }
 
+/* Meme Day Title with Crown */
+.meme-day-title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+}
+
+.crown-icon {
+    font-size: 1.5rem;
+    animation: crown-float 2s ease-in-out infinite;
+}
+
+@keyframes crown-float {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(-5deg);
+    }
+
+    50% {
+        transform: translateY(-5px) rotate(5deg);
+    }
+}
+
+/* Trophy bounce animation */
+.trophy-bounce {
+    animation: trophy-bounce 1.5s ease-in-out infinite;
+}
+
+@keyframes trophy-bounce {
+
+    0%,
+    100% {
+        transform: translateY(0) scale(1);
+    }
+
+    50% {
+        transform: translateY(-15px) scale(1.1);
+    }
+}
+
 /* Meme Day Stats */
 .meme-day-stats {
     display: grid;

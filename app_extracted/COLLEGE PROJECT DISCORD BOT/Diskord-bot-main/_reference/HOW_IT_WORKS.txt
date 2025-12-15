@@ -1,0 +1,32 @@
+NEXUS CONSOLE - LOGIC EXPLANATION
+
+1. INTRO ANIMATION
+   - Located in `script.js` under `runIntro()`.
+   - It works by manipulating the CSS classes of the `#intro-screen`.
+   - It starts by typing text into the console div.
+   - Then it hides the text, shows the Eyes div, then shows the Title.
+   - Finally, it sets the opacity of the whole intro screen to 0 (fade out) and reveals the main app.
+
+2. NAVIGATION (TABS)
+   - The sidebar buttons have an `onclick="switchTab('tab-name')"` attribute.
+   - In `script.js`, the `switchTab` function:
+     1. Removes the `active` class from all views.
+     2. Adds the `active` class to the specific view you clicked (e.g., `view-dashboard`).
+     3. This uses CSS (`display: none` vs `display: block`) to show/hide pages instantly without reloading.
+
+3. MESSAGE LOGS RENDERING
+   - We don't want to write HTML for 50 messages manually.
+   - In `script.js`, `generateMockMessageLogs()` creates an array of data (User, Content, Color Variant).
+   - It loops through this data and generates the HTML string for each card using Template Literals (the backticks ``).
+   - It creates the structure: Header (Date/Server) + User Info + Content Box.
+   - It applies classes like `variant-red` or `variant-brown` to change the border/text colors based on your Figma design.
+
+4. GLOBAL SENDING
+   - On the Message Logs page, there is an input field and a "Target ID".
+   - Clicking the ID triggers `editTarget()`, allowing you to type a new ID.
+   - Clicking "Send" grabs the text from the input and logs it to the console (Mock API).
+   - In a real bot, this would make a `fetch()` request to your bot's backend.
+
+5. AUTHENTICATION
+   - `loginWithDiscord()` currently simulates a login by waiting 1 second and setting a fake user.
+   - To make it real, you would uncomment the `window.location.href` line to redirect the user to Discord's OAuth page.

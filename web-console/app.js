@@ -600,6 +600,20 @@
                 window.Gallery3D.init();
             }, 100);
         }
+
+        // Load Meme of Day when switching to it
+        if (viewName === 'meme-of-day') {
+            setTimeout(() => {
+                MemeOfDay.load();
+            }, 100);
+        }
+
+        // Load Memes when switching to memes view
+        if (viewName === 'memes') {
+            setTimeout(() => {
+                MemeFeed.loadMemes();
+            }, 100);
+        }
     }
 
     // ===========================

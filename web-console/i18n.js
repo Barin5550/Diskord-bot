@@ -109,10 +109,14 @@ const i18n = {
 
             // Meme of Day
             'memeOfDay.title': 'Мем дня',
-            'memeOfDay.subtitle': 'Лучший мем по голосам',
-            'memeOfDay.topMemes': 'Топ мемов',
-            'memeOfDay.noMeme': 'Пока нет мемов',
-            'memeOfDay.likes': 'лайков',
+            'memeOfDay.subtitle': 'Мем с наибольшим количеством лайков сегодня',
+            'memeOfDay.topMemes': '🔥 Топ-5 мемов недели',
+            'memeOfDay.noMeme': 'Пока нет мема дня',
+            'memeOfDay.likes': 'Лайков',
+            'memeOfDay.views': 'Просмотров',
+            'memeOfDay.rank': 'Рейтинг',
+            'memeOfDay.uploadHint': 'Загрузи первый мем и собери лайки!',
+            'memeOfDay.noRating': 'Недостаточно мемов для рейтинга',
             'memeOfDay.place': 'место',
 
             // Tetris
@@ -374,10 +378,14 @@ const i18n = {
 
             // Meme of Day
             'memeOfDay.title': 'Meme of the Day',
-            'memeOfDay.subtitle': 'Best meme by votes',
-            'memeOfDay.topMemes': 'Top Memes',
-            'memeOfDay.noMeme': 'No memes yet',
-            'memeOfDay.likes': 'likes',
+            'memeOfDay.subtitle': 'Meme with the most likes today',
+            'memeOfDay.topMemes': '🔥 Top 5 Memes of the Week',
+            'memeOfDay.noMeme': 'No meme of the day yet',
+            'memeOfDay.likes': 'Likes',
+            'memeOfDay.views': 'Views',
+            'memeOfDay.rank': 'Rank',
+            'memeOfDay.uploadHint': 'Upload the first meme and collect likes!',
+            'memeOfDay.noRating': 'Not enough memes for ranking',
             'memeOfDay.place': 'place',
 
             // Tetris
@@ -639,10 +647,14 @@ const i18n = {
 
             // Meme of Day
             'memeOfDay.title': 'Meme des Tages',
-            'memeOfDay.subtitle': 'Bestes Meme nach Stimmen',
-            'memeOfDay.topMemes': 'Top-Memes',
-            'memeOfDay.noMeme': 'Noch keine Memes',
+            'memeOfDay.subtitle': 'Meme mit den meisten Likes heute',
+            'memeOfDay.topMemes': '🔥 Top 5 Memes der Woche',
+            'memeOfDay.noMeme': 'Noch kein Meme des Tages',
             'memeOfDay.likes': 'Likes',
+            'memeOfDay.views': 'Aufrufe',
+            'memeOfDay.rank': 'Rang',
+            'memeOfDay.uploadHint': 'Lade das erste Meme hoch und sammle Likes!',
+            'memeOfDay.noRating': 'Nicht genug Memes für Bewertung',
             'memeOfDay.place': 'Platz',
 
             // Tetris
