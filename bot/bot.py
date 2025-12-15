@@ -1,12 +1,12 @@
 """
 Discord Bot with Web API - Nexus Console
-Based on ra1d9r/thing project, integrated into Diskord-bot
+Uses SQLite instead of PostgreSQL for easy setup
 """
 
 import discord
 from discord.ext import commands
 import asyncio
-import asyncpg
+import aiosqlite
 from datetime import datetime, timezone
 import os
 from dotenv import load_dotenv
@@ -16,18 +16,12 @@ import json
 load_dotenv()
 
 # --- CONFIGURATION ---
-TOKEN = os.getenv("DISCORD_TOKEN")
-DB_CONFIG = {
-    "database": os.getenv("DB_NAME", "discord_dashboard"),
-    "user": os.getenv("DB_USER", "postgres"),
-    "password": os.getenv("DB_PASSWORD", ""),
-    "host": os.getenv("DB_HOST", "localhost"),
-    "port": os.getenv("DB_PORT", "5432"),
-}
+TOKEN = os.getenv("DISCORD_TOKEN", "")
+DATABASE_PATH = os.path.join(os.path.dirname(__file__), "bot_data.db")
 
 # Channel IDs (configure in .env or here)
-CHANNEL_ID_LOGS = int(os.getenv("CHANNEL_ID_LOGS", "0"))
-ADMIN_IDS = set(map(int, os.getenv("ADMIN_IDS", "").split(",") if os.getenv("ADMIN_IDS") else []))
+CHANNEL_ID_LOGS = int(os.getenv("CHANNEL_ID_LOGS", "0") or "0")
+ADMIN_IDS = set(map(int, filter(None, os.getenv("ADMIN_IDS", "").split(","))))
 
 # Bot Setup
 intents = discord.Intents.default()
@@ -37,12 +31,56 @@ intents.members = True
 bot = commands.Bot(command_prefix="C7/", intents=intents)
 
 # Globals
-db_pool = None
+db = None
 logs_channel = None
 waiting_users = {}
 
 # Colors
 psi_yellow = 0xffe989
+
+# --- DATABASE ---
+async def init_db():
+    global db
+    db = await aiosqlite.connect(DATABASE_PATH)
+    db.row_factory = aiosqlite.Row
+    
+    await db.executescript("""
+        CREATE TABLE IF NOT EXISTS members (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER UNIQUE NOT NULL,
+            username TEXT,
+            join_date TEXT
+        );
+        
+        CREATE TABLE IF NOT EXISTS saved_msg (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            folder TEXT,
+            username TEXT,
+            content TEXT,
+            timestamp TEXT,
+            channel_id INTEGER,
+            message_id INTEGER
+        );
+        
+        CREATE TABLE IF NOT EXISTS folders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            color TEXT DEFAULT '#FFE989',
+            owner_id TEXT
+        );
+        
+        CREATE TABLE IF NOT EXISTS server_folders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            folder_id INTEGER,
+            server_id INTEGER,
+            server_name TEXT,
+            UNIQUE(folder_id, server_id),
+            FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE
+        );
+    """)
+    await db.commit()
+    print("[DB] SQLite database ready")
 
 # --- API SERVER ---
 routes = web.RouteTableDef()
@@ -70,9 +108,9 @@ async def handle_options(request):
 @routes.get('/api/status')
 async def handle_status(request):
     return json_response({
-        'status': 'online',
-        'latency': round(bot.latency * 1000),
-        'guilds': len(bot.guilds)
+        'status': 'online' if bot.is_ready() else 'connecting',
+        'latency': round(bot.latency * 1000) if bot.is_ready() else 0,
+        'guilds': len(bot.guilds) if bot.is_ready() else 0
     })
 
 # Servers List
@@ -91,15 +129,10 @@ async def handle_servers(request):
 # --- FOLDER ROUTES ---
 @routes.get('/api/folders')
 async def handle_folders_get(request):
-    if not db_pool: return json_response([])
-    async with db_pool.acquire() as conn:
-        try:
-            rows = await conn.fetch("SELECT id, name, color, owner_id FROM folders ORDER BY id ASC")
-            folders = [{'id': r['id'], 'name': r['name'], 'color': r['color'] or '#FFE989', 'owner_id': r['owner_id']} for r in rows]
-            return json_response(folders)
-        except Exception as e:
-            print(f"Folders error: {e}")
-            return json_response([])
+    async with db.execute("SELECT id, name, color, owner_id FROM folders ORDER BY id ASC") as cursor:
+        rows = await cursor.fetchall()
+        folders = [{'id': r['id'], 'name': r['name'], 'color': r['color'] or '#FFE989', 'owner_id': r['owner_id']} for r in rows]
+        return json_response(folders)
 
 @routes.post('/api/folders')
 async def handle_folder_create(request):
@@ -108,12 +141,13 @@ async def handle_folder_create(request):
     owner_id = data.get('ownerId', 'system')
     color = data.get('color', '#FFE989')
     if not name: return json_response({'error': 'Name required'}, 400)
-    async with db_pool.acquire() as conn:
-        result = await conn.fetchrow(
-            "INSERT INTO folders (name, color, owner_id) VALUES ($1, $2, $3) RETURNING id, name, color, owner_id",
-            name, color, owner_id
-        )
-        return json_response({'id': result['id'], 'name': result['name'], 'color': result['color']})
+    
+    cursor = await db.execute(
+        "INSERT INTO folders (name, color, owner_id) VALUES (?, ?, ?)",
+        (name, color, owner_id)
+    )
+    await db.commit()
+    return json_response({'id': cursor.lastrowid, 'name': name, 'color': color})
 
 @routes.put('/api/folders/{id}')
 async def handle_folder_update(request):
@@ -121,23 +155,22 @@ async def handle_folder_update(request):
     data = await request.json()
     name = data.get('name')
     color = data.get('color')
-    async with db_pool.acquire() as conn:
-        await conn.execute("UPDATE folders SET name=$1, color=$2 WHERE id=$3", name, color, folder_id)
+    await db.execute("UPDATE folders SET name=?, color=? WHERE id=?", (name, color, folder_id))
+    await db.commit()
     return json_response({'status': 'updated'})
 
 @routes.delete('/api/folders/{id}')
 async def handle_folder_delete(request):
     folder_id = int(request.match_info['id'])
-    async with db_pool.acquire() as conn:
-        await conn.execute("DELETE FROM folders WHERE id=$1", folder_id)
+    await db.execute("DELETE FROM folders WHERE id=?", (folder_id,))
+    await db.commit()
     return json_response({'status': 'deleted'})
 
 @routes.get('/api/folders/{id}/servers')
 async def handle_folder_servers_get(request):
     folder_id = int(request.match_info['id'])
-    if not db_pool: return json_response([])
-    async with db_pool.acquire() as conn:
-        rows = await conn.fetch("SELECT server_id, server_name FROM server_folders WHERE folder_id=$1", folder_id)
+    async with db.execute("SELECT server_id, server_name FROM server_folders WHERE folder_id=?", (folder_id,)) as cursor:
+        rows = await cursor.fetchall()
         servers = [{'server_id': str(r['server_id']), 'server_name': r['server_name']} for r in rows]
         return json_response(servers)
 
@@ -157,46 +190,38 @@ async def handle_folder_server_add(request):
 
     if not server_id: return json_response({'error': 'Server ID required'}, 400)
     
-    async with db_pool.acquire() as conn:
-        await conn.execute("""
-            INSERT INTO server_folders (folder_id, server_id, server_name) 
-            VALUES ($1, $2, $3)
-            ON CONFLICT (folder_id, server_id) DO NOTHING
-        """, folder_id, int(server_id), server_name)
+    await db.execute("""
+        INSERT OR IGNORE INTO server_folders (folder_id, server_id, server_name) 
+        VALUES (?, ?, ?)
+    """, (folder_id, int(server_id), server_name))
+    await db.commit()
     return json_response({'status': 'added'})
 
 @routes.delete('/api/folders/{folder_id}/servers/{server_id}')
 async def handle_folder_server_remove(request):
     folder_id = int(request.match_info['folder_id'])
     server_id = int(request.match_info['server_id'])
-    async with db_pool.acquire() as conn:
-        await conn.execute("DELETE FROM server_folders WHERE folder_id=$1 AND server_id=$2", folder_id, server_id)
+    await db.execute("DELETE FROM server_folders WHERE folder_id=? AND server_id=?", (folder_id, server_id))
+    await db.commit()
     return json_response({'status': 'removed'})
 
 # --- LOG ROUTES ---
 @routes.get('/api/logs/messages')
 async def handle_logs_messages(request):
-    if not db_pool: return json_response([])
-    try:
-        limit = int(request.query.get('limit', 50))
-        async with db_pool.acquire() as conn:
-            rows = await conn.fetch(
-                "SELECT folder, username, content, timestamp, user_id FROM saved_msg ORDER BY timestamp DESC LIMIT $1",
-                limit
-            )
-        logs = []
-        for r in rows:
-            logs.append({
-                'server_name': r['folder'],
-                'username': r['username'],
-                'user_id': str(r['user_id']),
-                'content': r['content'],
-                'created_at': r['timestamp'].isoformat() if r['timestamp'] else None
-            })
+    limit = int(request.query.get('limit', 50))
+    async with db.execute(
+        "SELECT folder, username, content, timestamp, user_id FROM saved_msg ORDER BY timestamp DESC LIMIT ?",
+        (limit,)
+    ) as cursor:
+        rows = await cursor.fetchall()
+        logs = [{
+            'server_name': r['folder'],
+            'username': r['username'],
+            'user_id': str(r['user_id']),
+            'content': r['content'],
+            'created_at': r['timestamp']
+        } for r in rows]
         return json_response(logs)
-    except Exception as e:
-        print(f"Logs error: {e}")
-        return json_response([])
 
 # Global Send
 @routes.post('/api/send')
@@ -247,49 +272,8 @@ async def on_ready():
     global logs_channel
     if CHANNEL_ID_LOGS:
         logs_channel = bot.get_channel(CHANNEL_ID_LOGS)
-    print(f"✅ {bot.user} is ready!")
-    print(f"📊 Connected to {len(bot.guilds)} servers")
-    
-    # Initialize Database Tables
-    if db_pool:
-        async with db_pool.acquire() as conn:
-            await conn.execute("""
-            CREATE TABLE IF NOT EXISTS members (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT UNIQUE NOT NULL,
-                username TEXT,
-                join_date TIMESTAMPTZ
-            );
-            """)
-            await conn.execute("""
-            CREATE TABLE IF NOT EXISTS saved_msg (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT,
-                folder TEXT,
-                username TEXT,
-                content TEXT,
-                timestamp TIMESTAMPTZ,
-                channel_id BIGINT,
-                message_id BIGINT
-            );
-            """)
-            await conn.execute("""
-            CREATE TABLE IF NOT EXISTS folders (
-                id SERIAL PRIMARY KEY,
-                name TEXT NOT NULL,
-                color TEXT DEFAULT '#FFE989',
-                owner_id TEXT
-            );
-            """)
-            await conn.execute("""
-            CREATE TABLE IF NOT EXISTS server_folders (
-                folder_id INTEGER REFERENCES folders(id) ON DELETE CASCADE,
-                server_id BIGINT,
-                server_name TEXT,
-                PRIMARY KEY (folder_id, server_id)
-            );
-            """)
-            print("📦 Database tables ready")
+    print(f"[OK] {bot.user} is ready!")
+    print(f"[INFO] Connected to {len(bot.guilds)} servers")
     bot.add_view(SaveView())
 
 @bot.event
@@ -300,13 +284,11 @@ async def on_message(message: discord.Message):
         return
 
     # Log member
-    if db_pool:
-        async with db_pool.acquire() as conn:
-            await conn.execute("""
-                INSERT INTO members (user_id, username, join_date)
-                VALUES ($1, $2, $3)
-                ON CONFLICT (user_id) DO NOTHING
-            """, message.author.id, str(message.author), datetime.now(timezone.utc))
+    await db.execute("""
+        INSERT OR IGNORE INTO members (user_id, username, join_date)
+        VALUES (?, ?, ?)
+    """, (message.author.id, str(message.author), datetime.now(timezone.utc).isoformat()))
+    await db.commit()
 
     # Folder saving response
     user_id = message.author.id
@@ -316,14 +298,13 @@ async def on_message(message: discord.Message):
         if folder_input.lower() in ['no', 'none', 'default', '-']:
             folder_input = 'default'
         
-        if db_pool:
-            async with db_pool.acquire() as conn:
-                await conn.execute("""
-                    INSERT INTO saved_msg (user_id, folder, username, content, timestamp, channel_id, message_id)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7)
-                """, saved_message['user_id'], folder_input, saved_message['username'], 
-                saved_message['content'], datetime.now(timezone.utc),
-                saved_message['channel_id'], saved_message['message_id'])
+        await db.execute("""
+            INSERT INTO saved_msg (user_id, folder, username, content, timestamp, channel_id, message_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (saved_message['user_id'], folder_input, saved_message['username'], 
+              saved_message['content'], datetime.now(timezone.utc).isoformat(),
+              saved_message['channel_id'], saved_message['message_id']))
+        await db.commit()
         await message.reply("✅ Message saved!")
         del waiting_users[user_id]
         return
@@ -345,9 +326,8 @@ async def on_message(message: discord.Message):
 @bot.command(name="show_saved")
 async def show_saved(ctx, folder: str = None):
     folder = folder or "default"
-    if not db_pool: return await ctx.send("❌ DB Error")
-    async with db_pool.acquire() as conn:
-        rows = await conn.fetch("SELECT * FROM saved_msg WHERE folder=$1 ORDER BY timestamp ASC", folder)
+    async with db.execute("SELECT * FROM saved_msg WHERE folder=? ORDER BY timestamp ASC", (folder,)) as cursor:
+        rows = await cursor.fetchall()
     if not rows: return await ctx.send(f"📭 No logs in {folder}")
     await ctx.send(f"📬 Found {len(rows)} messages in '{folder}'")
 
@@ -367,16 +347,8 @@ async def list_servers(ctx):
 
 # --- MAIN ---
 async def main():
-    global db_pool
-    
-    # Connect to Database
-    if DB_CONFIG["password"]:
-        try:
-            db_pool = await asyncpg.create_pool(**DB_CONFIG)
-            print("✅ Database connected")
-        except Exception as e:
-            print(f"⚠️ Database failed: {e}")
-            print("Bot will run without database features")
+    # Initialize Database
+    await init_db()
     
     # Start API Server
     app = web.Application()
@@ -385,15 +357,17 @@ async def main():
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', 5000)
     await site.start()
-    print("🌐 API Server listening on http://localhost:5000")
+    print("[API] Server listening on http://localhost:5000")
 
     # Start Bot
     if TOKEN:
+        print("[BOT] Starting Discord bot...")
         async with bot:
             await bot.start(TOKEN)
     else:
-        print("❌ DISCORD_TOKEN not found in .env!")
-        print("   Bot features disabled. API server still running.")
+        print("[WARN] DISCORD_TOKEN not found in .env")
+        print("       API server running without Discord bot")
+        print("       Add DISCORD_TOKEN to .env to enable Discord features")
         while True:
             await asyncio.sleep(3600)
 
@@ -401,4 +375,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("\n👋 Bot stopped")
+        print("\n[BYE] Bot stopped")
