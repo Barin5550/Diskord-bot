@@ -557,6 +557,11 @@
         state.currentView = viewName;
         if (withTransition) await Transitions.play();
 
+        // Cleanup 3D Gallery when leaving it
+        if (window.Gallery3D && typeof window.Gallery3D.cleanup === 'function') {
+            window.Gallery3D.cleanup();
+        }
+
         elements.navItems.forEach(item => {
             item.classList.toggle('active', item.dataset.view === viewName);
         });

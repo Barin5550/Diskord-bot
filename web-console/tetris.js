@@ -467,22 +467,59 @@ const TetrisGame = (function () {
 
     function drawBlock(context, x, y, color) {
         const padding = 2;
-        context.fillStyle = color;
-        context.fillRect(
-            x * BLOCK_SIZE + padding,
-            y * BLOCK_SIZE + padding,
-            BLOCK_SIZE - padding * 2,
-            BLOCK_SIZE - padding * 2
-        );
+        const bx = x * BLOCK_SIZE + padding;
+        const by = y * BLOCK_SIZE + padding;
+        const size = BLOCK_SIZE - padding * 2;
 
-        // Highlight
-        context.fillStyle = 'rgba(255,255,255,0.3)';
-        context.fillRect(
-            x * BLOCK_SIZE + padding,
-            y * BLOCK_SIZE + padding,
-            BLOCK_SIZE - padding * 2,
-            4
-        );
+        // Glow effect
+        context.shadowColor = color;
+        context.shadowBlur = 8;
+
+        // Main block with gradient
+        const gradient = context.createLinearGradient(bx, by, bx + size, by + size);
+        gradient.addColorStop(0, lightenColor(color, 30));
+        gradient.addColorStop(0.5, color);
+        gradient.addColorStop(1, darkenColor(color, 20));
+
+        context.fillStyle = gradient;
+        context.fillRect(bx, by, size, size);
+
+        context.shadowBlur = 0;
+
+        // Inner highlight (3D effect)
+        context.fillStyle = 'rgba(255,255,255,0.4)';
+        context.fillRect(bx, by, size, 3);
+        context.fillRect(bx, by, 3, size);
+
+        // Inner shadow
+        context.fillStyle = 'rgba(0,0,0,0.3)';
+        context.fillRect(bx, by + size - 3, size, 3);
+        context.fillRect(bx + size - 3, by, 3, size);
+
+        // Center shine
+        context.fillStyle = 'rgba(255,255,255,0.15)';
+        context.beginPath();
+        context.arc(bx + size / 2, by + size / 2, size / 4, 0, Math.PI * 2);
+        context.fill();
+    }
+
+    // Color utility functions
+    function lightenColor(color, percent) {
+        const num = parseInt(color.replace('#', ''), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = Math.min(255, (num >> 16) + amt);
+        const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
+        const B = Math.min(255, (num & 0x0000FF) + amt);
+        return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+    }
+
+    function darkenColor(color, percent) {
+        const num = parseInt(color.replace('#', ''), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = Math.max(0, (num >> 16) - amt);
+        const G = Math.max(0, ((num >> 8) & 0x00FF) - amt);
+        const B = Math.max(0, (num & 0x0000FF) - amt);
+        return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
     }
 
     function renderNext() {

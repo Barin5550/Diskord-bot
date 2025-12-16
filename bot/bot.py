@@ -882,6 +882,217 @@ async def cmd_global_send(ctx, channel_id: int, *, content: str):
     sent = await channel.send(content)
     await ctx.send(f"+ Sent: {sent.jump_url}")
 
+# --- MODERATION COMMANDS ---
+
+@bot.command(name="ban")
+@commands.has_permissions(ban_members=True)
+async def cmd_ban(ctx, member: discord.Member, *, reason: str = "Не указана"):
+    """Забанить пользователя"""
+    try:
+        await member.ban(reason=f"{reason} (by {ctx.author})")
+        embed = discord.Embed(
+            title="🔨 Бан",
+            description=f"**{member}** забанен\nПричина: {reason}",
+            color=0xFF6B6B
+        )
+        await ctx.send(embed=embed)
+        
+        # Log to big_action_channel
+        if big_action_channel:
+            log_embed = discord.Embed(
+                title="🔨 BAN",
+                description=f"**{member}** забанен на {ctx.guild.name}",
+                color=0xFF6B6B
+            )
+            log_embed.add_field(name="Модератор", value=str(ctx.author))
+            log_embed.add_field(name="Причина", value=reason)
+            await big_action_channel.send(embed=log_embed)
+    except discord.Forbidden:
+        await ctx.send("❌ Недостаточно прав для бана этого пользователя")
+
+@bot.command(name="kick")
+@commands.has_permissions(kick_members=True)
+async def cmd_kick(ctx, member: discord.Member, *, reason: str = "Не указана"):
+    """Кикнуть пользователя"""
+    try:
+        await member.kick(reason=f"{reason} (by {ctx.author})")
+        embed = discord.Embed(
+            title="👢 Кик",
+            description=f"**{member}** кикнут\nПричина: {reason}",
+            color=0xFFA500
+        )
+        await ctx.send(embed=embed)
+    except discord.Forbidden:
+        await ctx.send("❌ Недостаточно прав для кика этого пользователя")
+
+@bot.command(name="mute")
+@commands.has_permissions(moderate_members=True)
+async def cmd_mute(ctx, member: discord.Member, duration: str = "10m", *, reason: str = "Не указана"):
+    """Замутить пользователя. Время: 10s, 5m, 1h, 1d"""
+    import re
+    from datetime import timedelta
+    
+    # Parse duration
+    match = re.match(r"(\d+)([smhd])", duration.lower())
+    if not match:
+        return await ctx.send("❌ Неверный формат времени. Используйте: 10s, 5m, 1h, 1d")
+    
+    amount, unit = int(match.group(1)), match.group(2)
+    units = {"s": "seconds", "m": "minutes", "h": "hours", "d": "days"}
+    delta = timedelta(**{units[unit]: amount})
+    
+    try:
+        await member.timeout(delta, reason=f"{reason} (by {ctx.author})")
+        embed = discord.Embed(
+            title="🔇 Мут",
+            description=f"**{member}** замучен на {duration}\nПричина: {reason}",
+            color=0x808080
+        )
+        await ctx.send(embed=embed)
+    except discord.Forbidden:
+        await ctx.send("❌ Недостаточно прав для мута этого пользователя")
+
+@bot.command(name="clear")
+@commands.has_permissions(manage_messages=True)
+async def cmd_clear(ctx, count: int = 10):
+    """Удалить сообщения (1-100)"""
+    count = max(1, min(100, count))
+    try:
+        deleted = await ctx.channel.purge(limit=count + 1)  # +1 for command message
+        msg = await ctx.send(f"🗑️ Удалено {len(deleted) - 1} сообщений")
+        await asyncio.sleep(3)
+        await msg.delete()
+    except discord.Forbidden:
+        await ctx.send("❌ Недостаточно прав для удаления сообщений")
+
+# --- INFO COMMANDS ---
+
+@bot.command(name="help")
+async def cmd_help(ctx):
+    """Показать список команд"""
+    embed = discord.Embed(
+        title="📖 Команды бота",
+        description="Список доступных команд",
+        color=PSI_YELLOW
+    )
+    
+    embed.add_field(
+        name="🛡️ Модерация",
+        value="`!ban @user [reason]` — Забанить\n`!kick @user [reason]` — Кикнуть\n`!mute @user [time]` — Замутить\n`!clear [count]` — Удалить сообщения",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="ℹ️ Информация",
+        value="`!help` — Эта справка\n`!ping` — Задержка бота\n`!stats` — Статистика сервера\n`!userinfo @user` — Инфо о пользователе",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="🎮 Развлечения",
+        value="`!meme` — Случайный мем\n`!roll [max]` — Бросить кубик\n`!8ball [вопрос]` — Магический шар",
+        inline=False
+    )
+    
+    await ctx.send(embed=embed)
+
+@bot.command(name="stats")
+async def cmd_stats(ctx):
+    """Статистика сервера"""
+    guild = ctx.guild
+    if not guild:
+        return await ctx.send("❌ Команда доступна только на сервере")
+    
+    embed = discord.Embed(
+        title=f"📊 Статистика {guild.name}",
+        color=PSI_YELLOW
+    )
+    if guild.icon:
+        embed.set_thumbnail(url=guild.icon.url)
+    
+    embed.add_field(name="👥 Участников", value=guild.member_count)
+    embed.add_field(name="💬 Каналов", value=len(guild.channels))
+    embed.add_field(name="🎭 Ролей", value=len(guild.roles))
+    embed.add_field(name="😀 Эмодзи", value=len(guild.emojis))
+    embed.add_field(name="🚀 Бустов", value=guild.premium_subscription_count or 0)
+    embed.add_field(name="📅 Создан", value=guild.created_at.strftime("%d.%m.%Y"))
+    
+    await ctx.send(embed=embed)
+
+@bot.command(name="userinfo")
+async def cmd_userinfo(ctx, member: discord.Member = None):
+    """Информация о пользователе"""
+    member = member or ctx.author
+    
+    embed = discord.Embed(
+        title=f"👤 {member.display_name}",
+        color=member.color
+    )
+    if member.avatar:
+        embed.set_thumbnail(url=member.avatar.url)
+    
+    embed.add_field(name="🏷️ Тег", value=str(member))
+    embed.add_field(name="🆔 ID", value=member.id)
+    embed.add_field(name="📅 Зарегистрирован", value=member.created_at.strftime("%d.%m.%Y"))
+    embed.add_field(name="📥 Присоединился", value=member.joined_at.strftime("%d.%m.%Y") if member.joined_at else "N/A")
+    embed.add_field(name="🎭 Ролей", value=len(member.roles) - 1)  # -1 for @everyone
+    embed.add_field(name="🤖 Бот", value="Да" if member.bot else "Нет")
+    
+    await ctx.send(embed=embed)
+
+# --- FUN COMMANDS ---
+
+@bot.command(name="meme")
+async def cmd_meme(ctx):
+    """Случайный мем из базы"""
+    cursor = await db_conn.execute("""
+        SELECT image_url, caption FROM memes ORDER BY RANDOM() LIMIT 1
+    """)
+    meme = await cursor.fetchone()
+    
+    if meme:
+        embed = discord.Embed(description=meme['caption'], color=PSI_YELLOW)
+        embed.set_image(url=meme['image_url'])
+        await ctx.send(embed=embed)
+    else:
+        await ctx.send("😢 Мемов пока нет. Загрузите их в веб-консоли!")
+
+@bot.command(name="roll")
+async def cmd_roll(ctx, maximum: int = 100):
+    """Бросить кубик"""
+    import random
+    result = random.randint(1, max(1, maximum))
+    embed = discord.Embed(
+        title="🎲 Кубик",
+        description=f"**{ctx.author.display_name}** выбросил **{result}** (1-{maximum})",
+        color=PSI_YELLOW
+    )
+    await ctx.send(embed=embed)
+
+@bot.command(name="8ball")
+async def cmd_8ball(ctx, *, question: str = None):
+    """Магический шар ответит на ваш вопрос"""
+    import random
+    
+    if not question:
+        return await ctx.send("❓ Задайте вопрос! Пример: `!8ball Будет ли завтра хорошая погода?`")
+    
+    answers = [
+        "🟢 Бесспорно", "🟢 Определённо да", "🟢 Никаких сомнений", "🟢 Да",
+        "🟡 Скорее всего", "🟡 Хорошие перспективы", "🟡 Знаки говорят — да",
+        "🟠 Пока не ясно", "🟠 Спроси позже", "🟠 Лучше не рассказывать",
+        "🔴 Даже не думай", "🔴 Мой ответ — нет", "🔴 Весьма сомнительно", "🔴 Нет"
+    ]
+    
+    embed = discord.Embed(
+        title="🎱 Магический шар",
+        color=PSI_YELLOW
+    )
+    embed.add_field(name="Вопрос", value=question, inline=False)
+    embed.add_field(name="Ответ", value=random.choice(answers), inline=False)
+    
+    await ctx.send(embed=embed)
+
 # --- MAIN ---
 
 async def main():

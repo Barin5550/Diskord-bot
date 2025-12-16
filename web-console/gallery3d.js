@@ -640,9 +640,46 @@
         return new Date(dateStr).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     }
 
+    // Cleanup function - call when switching views
+    function cleanup() {
+        // Stop animation
+        if (previewAnimationId) {
+            cancelAnimationFrame(previewAnimationId);
+            previewAnimationId = null;
+        }
+
+        // Close preview modal if open
+        const modal = document.getElementById('model-preview-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+
+        // Dispose preview renderer
+        if (previewRenderer) {
+            previewRenderer.dispose();
+            previewRenderer = null;
+        }
+
+        // Clear preview canvas
+        const previewCanvas = document.getElementById('model-preview-canvas');
+        if (previewCanvas) {
+            previewCanvas.innerHTML = '';
+        }
+
+        // Clear mini preview canvases
+        const miniPreviews = document.querySelectorAll('.gallery-item-preview canvas');
+        miniPreviews.forEach(canvas => {
+            canvas.remove();
+        });
+
+        currentModel = null;
+        isInitialized = false;
+    }
+
     // Public API
     window.Gallery3D = {
         init,
+        cleanup,
         openPreview,
         closePreview,
         likeModel,

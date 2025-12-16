@@ -116,6 +116,12 @@
         window.addEventListener('resize', onWindowResize);
         document.addEventListener('keydown', onKeyDown);
 
+        // ResizeObserver to handle container size changes (e.g. when Channel Box appears)
+        const resizeObserver = new ResizeObserver(() => {
+            onWindowResize();
+        });
+        resizeObserver.observe(container);
+
         // Start animation loop
         animate();
 
@@ -188,10 +194,10 @@
         animationId = requestAnimationFrame(animate);
         controls.update();
 
-        // Animate selected object outline
-        if (selectedObject && selectedObject.userData.outline) {
+        // Animate selected object emissive glow
+        if (selectedObject && selectedObject.material) {
             const time = Date.now() * 0.003;
-            selectedObject.userData.outline.material.opacity = 0.5 + Math.sin(time) * 0.3;
+            selectedObject.material.emissiveIntensity = 0.2 + Math.sin(time) * 0.15;
         }
 
         renderer.render(scene, camera);
@@ -369,21 +375,18 @@
         deselectObject();
         selectedObject = obj;
 
-        // Create outline effect
-        if (!obj.userData.outline) {
-            const outlineGeometry = obj.geometry.clone();
-            const outlineMaterial = new THREE.MeshBasicMaterial({
-                color: 0xFFE989,
-                side: THREE.BackSide,
-                transparent: true,
-                opacity: 0.8
-            });
-            const outline = new THREE.Mesh(outlineGeometry, outlineMaterial);
-            outline.scale.multiplyScalar(1.05);
-            obj.add(outline);
-            obj.userData.outline = outline;
+        // Create selection highlight using emissive instead of outline mesh
+        // This prevents the stretching issue
+        if (obj.material) {
+            // Store original color/emissive for restoration
+            if (!obj.userData.originalEmissive) {
+                obj.userData.originalEmissive = obj.material.emissive ? obj.material.emissive.clone() : new THREE.Color(0x000000);
+                obj.userData.originalEmissiveIntensity = obj.material.emissiveIntensity || 0;
+            }
+            // Apply selection glow
+            obj.material.emissive = new THREE.Color(0xFFE989);
+            obj.material.emissiveIntensity = 0.3;
         }
-        obj.userData.outline.visible = true;
 
         // Attach transform controls
         if (transformControls) {
@@ -398,8 +401,12 @@
 
     // Deselect current object
     function deselectObject() {
-        if (selectedObject && selectedObject.userData.outline) {
-            selectedObject.userData.outline.visible = false;
+        if (selectedObject) {
+            // Restore original emissive
+            if (selectedObject.material && selectedObject.userData.originalEmissive) {
+                selectedObject.material.emissive = selectedObject.userData.originalEmissive;
+                selectedObject.material.emissiveIntensity = selectedObject.userData.originalEmissiveIntensity || 0;
+            }
         }
         selectedObject = null;
 
@@ -1270,6 +1277,210 @@
         }
     }
 
+    // Toggle fullscreen mode
+    let isFullscreen = false;
+    function toggleFullscreen() {
+        const section = document.getElementById('view-constructor');
+        if (!section) return;
+
+        isFullscreen = !isFullscreen;
+
+        if (isFullscreen) {
+            section.classList.add('constructor-fullscreen');
+            document.body.style.overflow = 'hidden';
+            setStatusMessage('Полноэкранный режим ВКЛ (нажми снова для выхода)');
+        } else {
+            section.classList.remove('constructor-fullscreen');
+            document.body.style.overflow = '';
+            setStatusMessage('Полноэкранный режим ВЫКЛ');
+        }
+
+        // Trigger resize after transition
+        setTimeout(() => {
+            onWindowResize();
+        }, 100);
+    }
+
+    // Export scene as OBJ format
+    function exportOBJ() {
+        if (objects.length === 0) {
+            showNotification('Нет объектов для экспорта', 'warning');
+            return;
+        }
+
+        // Create export group
+        const exportGroup = new THREE.Group();
+        objects.forEach(obj => {
+            const clone = obj.clone();
+            clone.children = clone.children.filter(c => c !== obj.userData.outline);
+            exportGroup.add(clone);
+        });
+
+        // Check if OBJExporter exists
+        if (typeof THREE.OBJExporter === 'undefined') {
+            // Simple OBJ export implementation
+            let objContent = '# Exported from 3D Constructor\n';
+            let vertexOffset = 1;
+
+            exportGroup.traverse(mesh => {
+                if (mesh.geometry) {
+                    const positions = mesh.geometry.attributes.position;
+                    const normals = mesh.geometry.attributes.normal;
+
+                    objContent += `o ${mesh.userData.name || 'Object'}\n`;
+
+                    // Apply world transform
+                    mesh.updateMatrixWorld();
+                    const matrix = mesh.matrixWorld;
+
+                    // Vertices
+                    for (let i = 0; i < positions.count; i++) {
+                        const v = new THREE.Vector3(
+                            positions.getX(i),
+                            positions.getY(i),
+                            positions.getZ(i)
+                        ).applyMatrix4(matrix);
+                        objContent += `v ${v.x.toFixed(6)} ${v.y.toFixed(6)} ${v.z.toFixed(6)}\n`;
+                    }
+
+                    // Normals
+                    if (normals) {
+                        for (let i = 0; i < normals.count; i++) {
+                            const n = new THREE.Vector3(
+                                normals.getX(i),
+                                normals.getY(i),
+                                normals.getZ(i)
+                            );
+                            objContent += `vn ${n.x.toFixed(6)} ${n.y.toFixed(6)} ${n.z.toFixed(6)}\n`;
+                        }
+                    }
+
+                    // Faces
+                    const indices = mesh.geometry.index;
+                    if (indices) {
+                        for (let i = 0; i < indices.count; i += 3) {
+                            const a = indices.getX(i) + vertexOffset;
+                            const b = indices.getX(i + 1) + vertexOffset;
+                            const c = indices.getX(i + 2) + vertexOffset;
+                            objContent += `f ${a}//${a} ${b}//${b} ${c}//${c}\n`;
+                        }
+                    } else {
+                        for (let i = 0; i < positions.count; i += 3) {
+                            const a = i + vertexOffset;
+                            const b = i + 1 + vertexOffset;
+                            const c = i + 2 + vertexOffset;
+                            objContent += `f ${a}//${a} ${b}//${b} ${c}//${c}\n`;
+                        }
+                    }
+
+                    vertexOffset += positions.count;
+                }
+            });
+
+            const blob = new Blob([objContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `model_${Date.now()}.obj`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showNotification('3D модель скачана (.obj)!', 'success');
+        } else {
+            const exporter = new THREE.OBJExporter();
+            const result = exporter.parse(exportGroup);
+            const blob = new Blob([result], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `model_${Date.now()}.obj`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showNotification('3D модель скачана (.obj)!', 'success');
+        }
+    }
+
+    // Export scene as STL format (for 3D printing)
+    function exportSTL() {
+        if (objects.length === 0) {
+            showNotification('Нет объектов для экспорта', 'warning');
+            return;
+        }
+
+        // Create export group
+        const exportGroup = new THREE.Group();
+        objects.forEach(obj => {
+            const clone = obj.clone();
+            clone.children = clone.children.filter(c => c !== obj.userData.outline);
+            exportGroup.add(clone);
+        });
+
+        // Check if STLExporter exists
+        if (typeof THREE.STLExporter === 'undefined') {
+            // Simple ASCII STL export
+            let stlContent = 'solid model\n';
+
+            exportGroup.traverse(mesh => {
+                if (mesh.geometry) {
+                    mesh.updateMatrixWorld();
+                    const matrix = mesh.matrixWorld;
+                    const positions = mesh.geometry.attributes.position;
+                    const indices = mesh.geometry.index;
+
+                    const processTriangle = (i0, i1, i2) => {
+                        const v0 = new THREE.Vector3(positions.getX(i0), positions.getY(i0), positions.getZ(i0)).applyMatrix4(matrix);
+                        const v1 = new THREE.Vector3(positions.getX(i1), positions.getY(i1), positions.getZ(i1)).applyMatrix4(matrix);
+                        const v2 = new THREE.Vector3(positions.getX(i2), positions.getY(i2), positions.getZ(i2)).applyMatrix4(matrix);
+
+                        // Calculate normal
+                        const edge1 = new THREE.Vector3().subVectors(v1, v0);
+                        const edge2 = new THREE.Vector3().subVectors(v2, v0);
+                        const normal = new THREE.Vector3().crossVectors(edge1, edge2).normalize();
+
+                        stlContent += `  facet normal ${normal.x.toFixed(6)} ${normal.y.toFixed(6)} ${normal.z.toFixed(6)}\n`;
+                        stlContent += '    outer loop\n';
+                        stlContent += `      vertex ${v0.x.toFixed(6)} ${v0.y.toFixed(6)} ${v0.z.toFixed(6)}\n`;
+                        stlContent += `      vertex ${v1.x.toFixed(6)} ${v1.y.toFixed(6)} ${v1.z.toFixed(6)}\n`;
+                        stlContent += `      vertex ${v2.x.toFixed(6)} ${v2.y.toFixed(6)} ${v2.z.toFixed(6)}\n`;
+                        stlContent += '    endloop\n';
+                        stlContent += '  endfacet\n';
+                    };
+
+                    if (indices) {
+                        for (let i = 0; i < indices.count; i += 3) {
+                            processTriangle(indices.getX(i), indices.getX(i + 1), indices.getX(i + 2));
+                        }
+                    } else {
+                        for (let i = 0; i < positions.count; i += 3) {
+                            processTriangle(i, i + 1, i + 2);
+                        }
+                    }
+                }
+            });
+
+            stlContent += 'endsolid model\n';
+
+            const blob = new Blob([stlContent], { type: 'application/sla' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `model_${Date.now()}.stl`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showNotification('3D модель скачана (.stl) для 3D печати!', 'success');
+        } else {
+            const exporter = new THREE.STLExporter();
+            const result = exporter.parse(exportGroup);
+            const blob = new Blob([result], { type: 'application/sla' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `model_${Date.now()}.stl`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showNotification('3D модель скачана (.stl) для 3D печати!', 'success');
+        }
+    }
+
     // Public API
     window.Constructor3D = {
         init,
@@ -1286,9 +1497,9 @@
         // Material
         toggleWireframe, toggleFlatShading,
         // Scene
-        exportScene, exportGLTF, clearScene, resetCamera, publishToGallery,
+        exportScene, exportGLTF, exportOBJ, exportSTL, clearScene, resetCamera, publishToGallery,
         // View
-        toggleGrid, toggleAxes,
+        toggleGrid, toggleAxes, toggleFullscreen,
         // History
         undo, redo,
         // Help
