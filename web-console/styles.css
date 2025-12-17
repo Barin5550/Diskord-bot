@@ -10684,3 +10684,1037 @@ body.overkill-mode .theme-btn.active {
     color: var(--color-text-muted);
     font-size: 0.75rem;
 }
+
+/* ===========================
+   SNAKE TRON STYLE
+   =========================== */
+.snake-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-4);
+    padding: var(--space-3);
+    background: rgba(0, 212, 255, 0.1);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.snake-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.snake-stat small {
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+}
+
+.snake-stat span {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: #00D4FF;
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+}
+
+.snake-speed-selector {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.snake-speed-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 50%;
+    color: #00D4FF;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.snake-speed-btn:hover {
+    background: rgba(0, 212, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.snake-speed-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 100px;
+}
+
+.snake-speed-display small {
+    color: var(--color-text-muted);
+    font-size: 0.7rem;
+}
+
+.snake-speed-display span {
+    color: #00D4FF;
+    font-weight: 600;
+}
+
+#snake-canvas {
+    border: 2px solid #00D4FF;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+.snake-start-btn {
+    background: linear-gradient(135deg, #00D4FF 0%, #0088AA 100%);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.4);
+}
+
+.snake-hint {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    margin-top: var(--space-3);
+}
+
+.snake-hint kbd {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: #00D4FF;
+}
+
+/* ===========================
+   TRON SETTINGS
+   =========================== */
+.tron-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-4);
+    gap: var(--space-4);
+}
+
+.tron-settings {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.tron-fade-btn {
+    padding: var(--space-2) var(--space-4);
+    background: rgba(255, 107, 0, 0.1);
+    border: 1px solid rgba(255, 107, 0, 0.3);
+    border-radius: var(--border-radius);
+    color: #FF6B00;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tron-fade-btn:hover {
+    background: rgba(255, 107, 0, 0.2);
+}
+
+.tron-fade-btn.active {
+    background: rgba(255, 107, 0, 0.3);
+    box-shadow: 0 0 10px rgba(255, 107, 0, 0.4);
+}
+
+#tron-canvas {
+    border: 2px solid #00D4FF;
+    border-radius: 8px;
+    box-shadow:
+        0 0 20px rgba(0, 212, 255, 0.3),
+        0 0 40px rgba(0, 212, 255, 0.1);
+}
+
+.tron-hint {
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    margin-top: var(--space-3);
+}
+
+.tron-hint kbd {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: #00D4FF;
+}
+
+/* ===========================
+   SAFETY SECTION STYLES
+   =========================== */
+.safety-section {
+    border-color: rgba(255, 193, 7, 0.5);
+    background: rgba(255, 193, 7, 0.05);
+}
+
+.safety-rules {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.safety-rule {
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border-radius: var(--border-radius);
+    align-items: flex-start;
+}
+
+.safety-rule span {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.safety-rule b {
+    display: block;
+    margin-bottom: var(--space-1);
+}
+
+.safety-rule p {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+}
+
+.safety-rule.danger {
+    background: rgba(255, 0, 64, 0.1);
+    border: 1px solid rgba(255, 0, 64, 0.3);
+}
+
+.safety-rule.danger b {
+    color: #FF4D6A;
+}
+
+.safety-rule.warning {
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.safety-rule.warning b {
+    color: #FFC107;
+}
+
+.safety-rule.info {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.safety-rule.info b {
+    color: #00D4FF;
+}
+
+/* ===========================
+   PYTHON COURSE STYLES
+   =========================== */
+.python-course-section {
+    margin-bottom: var(--space-6);
+}
+
+.python-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    background: linear-gradient(135deg, rgba(55, 118, 171, 0.2) 0%, rgba(255, 212, 59, 0.1) 100%);
+    border-color: rgba(55, 118, 171, 0.5);
+    margin-bottom: var(--space-5);
+}
+
+.python-logo {
+    font-size: 4rem;
+    line-height: 1;
+}
+
+.python-header h2 {
+    margin: 0 0 var(--space-2) 0;
+    color: #FFD43B;
+}
+
+.python-card {
+    border-color: rgba(55, 118, 171, 0.4);
+}
+
+.python-card .category-icon {
+    background: rgba(55, 118, 171, 0.2);
+}
+
+.python-content {
+    padding-top: var(--space-3);
+}
+
+.python-content p {
+    margin-bottom: var(--space-3);
+}
+
+.python-content ul,
+.python-content ol {
+    margin-bottom: var(--space-3);
+    padding-left: var(--space-5);
+}
+
+.python-content li {
+    margin-bottom: var(--space-2);
+}
+
+/* Code Blocks */
+.code-block {
+    background: #1a1a2e;
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: var(--border-radius);
+    padding: var(--space-3) var(--space-4);
+    margin: var(--space-3) 0;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.code-block code {
+    color: #00D4FF;
+}
+
+.code-block.python-code {
+    background: linear-gradient(135deg, #0d0d1a 0%, #1a1a2e 100%);
+    border-color: rgba(255, 212, 59, 0.3);
+}
+
+.code-block.python-code pre {
+    margin: 0;
+    color: #e8e8e8;
+    white-space: pre;
+    font-family: var(--font-mono);
+}
+
+/* Python Table */
+.python-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: var(--space-3) 0;
+    font-size: 0.875rem;
+}
+
+.python-table th,
+.python-table td {
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid rgba(55, 118, 171, 0.3);
+    text-align: left;
+}
+
+.python-table th {
+    background: rgba(55, 118, 171, 0.2);
+    color: #FFD43B;
+    font-weight: 600;
+}
+
+.python-table td {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.python-table code {
+    background: rgba(0, 212, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #00D4FF;
+}
+
+/* Household Divider */
+.household-divider {
+    text-align: center;
+    padding: var(--space-6) 0;
+    margin: var(--space-6) 0;
+    border-top: 2px solid rgba(255, 107, 0, 0.3);
+    border-bottom: 2px solid rgba(255, 107, 0, 0.3);
+    background: rgba(255, 107, 0, 0.05);
+    border-radius: var(--border-radius);
+}
+
+.household-divider h2 {
+    margin: 0 0 var(--space-2) 0;
+    color: #FF6B00;
+    font-size: 1.75rem;
+}
+
+.household-divider p {
+    margin: 0;
+    color: var(--color-text-muted);
+}
+
+/* ===========================
+   SETTINGS BUTTON LARGER
+   =========================== */
+#btn-settings {
+    width: 44px;
+    height: 44px;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 212, 59, 0.1);
+    border: 1px solid rgba(255, 212, 59, 0.3);
+    transition: all 0.3s ease;
+}
+
+#btn-settings:hover {
+    background: rgba(255, 212, 59, 0.2);
+    transform: rotate(90deg);
+    box-shadow: 0 0 15px rgba(255, 212, 59, 0.4);
+}
+
+/* ===========================
+   PYTHON JOKES STYLE
+   =========================== */
+.python-joke {
+    background: linear-gradient(135deg, rgba(255, 107, 0, 0.1) 0%, rgba(255, 212, 59, 0.1) 100%);
+    border: 1px dashed rgba(255, 107, 0, 0.4);
+    border-radius: var(--border-radius);
+    padding: var(--space-3);
+    margin: var(--space-3) 0;
+    position: relative;
+}
+
+.python-joke::before {
+    content: "😄 ШУТКА";
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    background: #1a1a2e;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    color: #FF6B00;
+    font-weight: 600;
+}
+
+.python-joke p {
+    margin: 0;
+    font-style: italic;
+    color: #FFD43B;
+}
+
+/* ===========================
+   MEMORIAL / CEMETERY STYLES
+   =========================== */
+.memorial-content {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.memorial-quote {
+    text-align: center;
+    padding: var(--space-5);
+    margin-bottom: var(--space-5);
+    border-left: 4px solid #666;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--border-radius);
+}
+
+.memorial-quote p {
+    margin: 0;
+    font-style: italic;
+    font-size: 1.1rem;
+    color: #888;
+}
+
+/* VERTICAL LAYOUT - Cards one after another */
+.memorial-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.memorial-card {
+    display: flex;
+    gap: var(--space-4);
+    background: rgba(20, 20, 30, 0.8);
+    border: 1px solid rgba(100, 100, 100, 0.3);
+    border-radius: var(--border-radius);
+    padding: var(--space-4);
+    transition: all 0.3s ease;
+}
+
+.memorial-card:hover {
+    border-color: rgba(150, 150, 150, 0.4);
+    background: rgba(30, 30, 45, 0.8);
+    transform: translateX(5px);
+}
+
+.memorial-card-image {
+    flex-shrink: 0;
+    width: 200px;
+    height: 150px;
+    background: #0a0a15;
+    border-radius: var(--border-radius);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.memorial-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.memorial-icon {
+    font-size: 4rem;
+    opacity: 0.6;
+    filter: grayscale(50%);
+}
+
+.rip-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 0, 64, 0.9);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    font-family: serif;
+    letter-spacing: 1px;
+}
+
+.memorial-card-info {
+    flex: 1;
+}
+
+.memorial-card-info h3 {
+    margin: 0 0 var(--space-2) 0;
+    font-size: 1.4rem;
+    color: #00D4FF;
+}
+
+.death-date {
+    display: inline-block;
+    color: #888;
+    font-style: italic;
+    margin-bottom: var(--space-3);
+    padding: 4px 10px;
+    background: rgba(100, 100, 100, 0.2);
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.memorial-card-info p {
+    margin: 0 0 var(--space-2) 0;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+}
+
+.memorial-card-info p.epitaph {
+    color: #e0e0e0;
+    font-weight: 500;
+}
+
+.memorial-card-info blockquote {
+    margin: var(--space-3) 0;
+    padding-left: var(--space-3);
+    border-left: 3px solid #666;
+    color: #aaa;
+    font-style: italic;
+}
+
+.memorial-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+}
+
+.memorial-tags .tag {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: #00D4FF;
+}
+
+.memorial-footer {
+    text-align: center;
+    padding: var(--space-6) 0;
+    color: #666;
+    border-top: 1px solid rgba(100, 100, 100, 0.2);
+    margin-top: var(--space-5);
+}
+
+.memorial-footer p {
+    margin: 0;
+}
+
+/* Responsive: stack on mobile */
+@media (max-width: 768px) {
+    .memorial-card {
+        flex-direction: column;
+    }
+
+    .memorial-card-image {
+        width: 100%;
+        height: 200px;
+    }
+}
+
+/* ===========================
+   TRON ARENA STYLES
+   =========================== */
+
+/* Main container - CENTER the game */
+.tron-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    max-width: 850px;
+    margin: 0 auto;
+    padding: var(--space-4);
+}
+
+/* Info bar with players and settings */
+.tron-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 800px;
+    gap: var(--space-4);
+    padding: var(--space-3);
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+/* Player info blocks */
+.tron-player {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.tron-p1 {
+    text-align: left;
+}
+
+.tron-p2 {
+    text-align: right;
+}
+
+.tron-player .player-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.tron-p1 .player-name {
+    color: #00D4FF;
+}
+
+.tron-p2 .player-name {
+    color: #FF6B00;
+}
+
+.tron-player .player-keys {
+    font-size: 0.75rem;
+    color: #666;
+    font-family: var(--font-mono);
+}
+
+.tron-player .player-score {
+    font-size: 0.85rem;
+    color: #888;
+}
+
+/* Settings in the middle */
+.tron-settings {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.tron-level-selector {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.tron-level-btn {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    color: #00D4FF;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.tron-level-btn:hover {
+    background: rgba(0, 212, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.tron-level-display {
+    min-width: 100px;
+    text-align: center;
+}
+
+.tron-level-display small {
+    display: block;
+    font-size: 0.7rem;
+    color: #666;
+    text-transform: uppercase;
+}
+
+#tron-level {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #FFFF00;
+}
+
+/* Fade toggle button */
+.tron-fade-btn {
+    background: rgba(255, 107, 0, 0.1);
+    border: 1px solid rgba(255, 107, 0, 0.3);
+    color: #888;
+    padding: 6px 14px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.tron-fade-btn:hover {
+    background: rgba(255, 107, 0, 0.2);
+}
+
+.tron-fade-btn.active {
+    background: rgba(255, 107, 0, 0.3);
+    color: #FF6B00;
+    border-color: #FF6B00;
+}
+
+/* Canvas with glow effect */
+#tron-canvas {
+    display: block;
+    border: 3px solid rgba(0, 212, 255, 0.5);
+    border-radius: var(--border-radius);
+    box-shadow:
+        0 0 20px rgba(0, 212, 255, 0.3),
+        inset 0 0 50px rgba(0, 0, 0, 0.5);
+    background: #0a0a1a;
+}
+
+/* Controls */
+.tron-controls {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-3);
+}
+
+#tron-start {
+    padding: var(--space-3) var(--space-6);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Hint at the bottom */
+.tron-hint {
+    text-align: center;
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.tron-hint kbd {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: #00D4FF;
+}
+
+/* Responsive */
+@media (max-width: 860px) {
+    .tron-container {
+        padding: var(--space-2);
+    }
+
+    #tron-canvas {
+        width: 100%;
+        height: auto;
+    }
+
+    .tron-info {
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    .tron-player {
+        text-align: center !important;
+    }
+}
+
+/* ===========================
+   PACMAN STYLES
+   =========================== */
+.pacman-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    max-width: 600px;
+    margin: 0 auto;
+    padding: var(--space-4);
+}
+
+.pacman-info {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    max-width: 560px;
+    gap: var(--space-4);
+    padding: var(--space-3);
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(255, 255, 0, 0.3);
+}
+
+.pacman-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.pacman-stat .stat-label {
+    font-size: 0.7rem;
+    color: #888;
+    text-transform: uppercase;
+}
+
+.pacman-stat .stat-value {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #FFFF00;
+}
+
+#pacman-canvas {
+    display: block;
+    border: 3px solid rgba(33, 33, 222, 0.7);
+    border-radius: var(--border-radius);
+    box-shadow:
+        0 0 20px rgba(33, 33, 222, 0.4),
+        inset 0 0 30px rgba(0, 0, 0, 0.5);
+    background: #000;
+}
+
+.pacman-controls {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-3);
+}
+
+#pacman-start {
+    padding: var(--space-3) var(--space-6);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.pacman-hint {
+    text-align: center;
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.pacman-hint kbd {
+    background: rgba(255, 255, 0, 0.1);
+    border: 1px solid rgba(255, 255, 0, 0.3);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: #FFFF00;
+}
+
+/* ===========================
+   MEMORIAL / CEMETERY STYLES
+   =========================== */
+.memorial-content {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.memorial-intro {
+    text-align: center;
+    padding: var(--space-5);
+    margin-bottom: var(--space-6);
+}
+
+.memorial-quote {
+    font-style: italic;
+    font-size: 1.2rem;
+    color: #888;
+    position: relative;
+}
+
+.memorial-quote::before,
+.memorial-quote::after {
+    content: '"';
+    font-size: 2rem;
+    color: #444;
+    vertical-align: middle;
+}
+
+/* Individual project block */
+.memorial-project {
+    margin-bottom: var(--space-6);
+    background: rgba(10, 10, 20, 0.6);
+    border: 1px solid rgba(100, 100, 100, 0.2);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+/* Screenshot with R.I.P. overlay */
+.memorial-screenshot {
+    position: relative;
+    width: 100%;
+    max-height: 500px;
+    overflow: hidden;
+    background: #000;
+}
+
+.memorial-screenshot img {
+    width: 100%;
+    height: auto;
+    display: block;
+    filter: grayscale(30%) brightness(0.8);
+    transition: filter 0.3s ease;
+}
+
+.memorial-project:hover .memorial-screenshot img {
+    filter: grayscale(0%) brightness(1);
+}
+
+.rip-overlay {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 0, 64, 0.9);
+    color: white;
+    padding: 8px 20px;
+    border-radius: 4px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    font-family: serif;
+    letter-spacing: 2px;
+    box-shadow: 0 4px 15px rgba(255, 0, 64, 0.4);
+}
+
+/* Story text block */
+.memorial-story {
+    padding: var(--space-5);
+}
+
+.memorial-story h3 {
+    margin: 0 0 var(--space-2) 0;
+    font-size: 1.5rem;
+    color: #00D4FF;
+}
+
+.death-date {
+    display: inline-block;
+    color: #888;
+    font-style: italic;
+    margin-bottom: var(--space-4);
+    padding: 6px 14px;
+    background: rgba(100, 100, 100, 0.2);
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.memorial-story p {
+    margin: 0 0 var(--space-3) 0;
+    color: #aaa;
+    line-height: 1.8;
+}
+
+.memorial-story p.epitaph {
+    color: #e0e0e0;
+    font-weight: 500;
+    font-size: 1.1rem;
+}
+
+.memorial-story blockquote {
+    margin: var(--space-4) 0 0 0;
+    padding: var(--space-3) var(--space-4);
+    border-left: 4px solid #666;
+    background: rgba(0, 0, 0, 0.3);
+    color: #888;
+    font-style: italic;
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+}
+
+/* Footer */
+.memorial-footer {
+    text-align: center;
+    padding: var(--space-6);
+    color: #666;
+    border-top: 1px solid rgba(100, 100, 100, 0.2);
+    margin-top: var(--space-5);
+}
+
+.memorial-footer p {
+    margin: 0 0 var(--space-2) 0;
+}
+
+.memorial-footer code {
+    background: rgba(0, 212, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: #00D4FF;
+}
+
+.memorial-final {
+    margin-top: var(--space-4) !important;
+    font-size: 0.9rem;
+}
+
+.memorial-final kbd {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    padding: 4px 12px;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    color: #fff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .memorial-screenshot {
+        max-height: 300px;
+    }
+
+    .rip-overlay {
+        top: 10px;
+        right: 10px;
+        padding: 6px 14px;
+        font-size: 1rem;
+    }
+}

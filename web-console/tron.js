@@ -1,7 +1,6 @@
 /**
- * TRON Classic - Light Cycle Arena
- * Classic 2-player TRON light cycle game with levels
- * FIXED: Slower speeds, easier gameplay, better collision detection
+ * TRON Arena v3 - Light Cycle Game
+ * Enhanced with fading trail support and better gameplay
  */
 
 (function () {
@@ -16,14 +15,14 @@
     const WIDTH = canvas.width;
     const HEIGHT = canvas.height;
 
-    // Difficulty levels - SLOWER SPEEDS
+    // Difficulty levels
     const LEVELS = [
-        { name: 'Черепаха', speed: 2, color: '#00FF00' },
-        { name: 'Новичок', speed: 2.5, color: '#88FF00' },
-        { name: 'Легко', speed: 3, color: '#FFFF00' },
-        { name: 'Нормально', speed: 4, color: '#FF8800' },
-        { name: 'Сложно', speed: 5, color: '#FF0000' },
-        { name: 'Безумие', speed: 7, color: '#FF00FF' }
+        { name: 'Черепаха', speed: 1.5, color: '#00FF00' },
+        { name: 'Новичок', speed: 2, color: '#88FF00' },
+        { name: 'Легко', speed: 2.5, color: '#FFFF00' },
+        { name: 'Нормально', speed: 3.5, color: '#FF8800' },
+        { name: 'Сложно', speed: 4.5, color: '#FF0000' },
+        { name: 'Безумие', speed: 6, color: '#FF00FF' }
     ];
 
     // Colors
@@ -52,16 +51,21 @@
     let p1Score = 0;
     let p2Score = 0;
 
+    // FADE TRAIL FEATURE
+    let fadeTrailEnabled = false;
+    const FADE_TRAIL_LENGTH = 150; // Trail points before fade starts
+    const FADE_SPEED = 0.02; // How fast trail fades
+
     // Background particles
     let bgParticles = [];
-    for (let i = 0; i < 25; i++) {
+    for (let i = 0; i < 30; i++) {
         bgParticles.push({
             x: Math.random() * WIDTH,
             y: Math.random() * HEIGHT,
-            vx: (Math.random() - 0.5) * 0.3,
-            vy: (Math.random() - 0.5) * 0.3,
-            size: Math.random() * 2 + 1,
-            alpha: Math.random() * 0.2 + 0.05
+            vx: (Math.random() - 0.5) * 0.4,
+            vy: (Math.random() - 0.5) * 0.4,
+            size: Math.random() * 2 + 0.5,
+            alpha: Math.random() * 0.15 + 0.05
         });
     }
 
@@ -70,7 +74,7 @@
 
         // Player 1 starts left, moving right
         player1 = {
-            x: 80,
+            x: 100,
             y: HEIGHT / 2,
             dx: speed,
             dy: 0,
@@ -78,13 +82,13 @@
             trailColor: COLORS.player1Trail,
             glow: COLORS.player1Glow,
             alive: true,
-            trail: [],
+            trail: [], // {x, y, alpha}
             name: 'CYAN'
         };
 
         // Player 2 starts right, moving left
         player2 = {
-            x: WIDTH - 80,
+            x: WIDTH - 100,
             y: HEIGHT / 2,
             dx: -speed,
             dy: 0,
@@ -102,39 +106,46 @@
     }
 
     function updateUI() {
-        const p1Status = document.getElementById('tron-p1-status');
-        const p2Status = document.getElementById('tron-p2-status');
         const levelEl = document.getElementById('tron-level');
         const p1ScoreEl = document.getElementById('tron-p1-score');
         const p2ScoreEl = document.getElementById('tron-p2-score');
+        const fadeBtn = document.getElementById('tron-fade-btn');
 
-        if (p1Status) p1Status.textContent = player1?.alive ? 'ACTIVE' : 'DEREZZ';
-        if (p2Status) p2Status.textContent = player2?.alive ? 'ACTIVE' : 'DEREZZ';
         if (levelEl) levelEl.textContent = LEVELS[currentLevel].name;
         if (p1ScoreEl) p1ScoreEl.textContent = p1Score;
         if (p2ScoreEl) p2ScoreEl.textContent = p2Score;
+        if (fadeBtn) {
+            fadeBtn.textContent = fadeTrailEnabled ? '🔥 Затухание: ON' : '🔥 Затухание: OFF';
+            fadeBtn.classList.toggle('active', fadeTrailEnabled);
+        }
     }
 
-    function checkCollision(x, y, player, skipRecent = 20) {
-        // Wall collision
-        if (x < 5 || x >= WIDTH - 5 || y < 5 || y >= HEIGHT - 5) {
+    function checkCollision(x, y, player, skipRecent = 15) {
+        // Wall collision with margin
+        const margin = 8;
+        if (x < margin || x >= WIDTH - margin || y < margin || y >= HEIGHT - margin) {
             return true;
         }
 
         // Check collision with own trail (skip recent points)
+        const checkRadius = 5;
         const ownTrail = player.trail.slice(0, -skipRecent);
         for (let i = 0; i < ownTrail.length; i++) {
             const t = ownTrail[i];
+            // Skip faded trails in collision
+            if (fadeTrailEnabled && t.alpha < 0.3) continue;
             const dist = Math.sqrt((x - t.x) ** 2 + (y - t.y) ** 2);
-            if (dist < 4) return true;
+            if (dist < checkRadius) return true;
         }
 
         // Check collision with opponent trail
         const opponent = player === player1 ? player2 : player1;
         for (let i = 0; i < opponent.trail.length; i++) {
             const t = opponent.trail[i];
+            // Skip faded trails in collision
+            if (fadeTrailEnabled && t.alpha < 0.3) continue;
             const dist = Math.sqrt((x - t.x) ** 2 + (y - t.y) ** 2);
-            if (dist < 4) return true;
+            if (dist < checkRadius) return true;
         }
 
         return false;
@@ -143,12 +154,23 @@
     function updatePlayer(player) {
         if (!player.alive) return;
 
-        // Add current position to trail
-        player.trail.push({ x: player.x, y: player.y });
+        // Add current position to trail with alpha
+        player.trail.push({ x: player.x, y: player.y, alpha: 1 });
 
         // Move player
         player.x += player.dx;
         player.y += player.dy;
+
+        // Fade old trail points if enabled
+        if (fadeTrailEnabled) {
+            player.trail.forEach((t, i) => {
+                if (i < player.trail.length - FADE_TRAIL_LENGTH) {
+                    t.alpha -= FADE_SPEED;
+                }
+            });
+            // Remove fully faded points
+            player.trail = player.trail.filter(t => t.alpha > 0);
+        }
 
         // Check collision
         if (checkCollision(player.x, player.y, player)) {
@@ -206,14 +228,14 @@
         // Grid
         ctx.strokeStyle = COLORS.grid;
         ctx.lineWidth = 0.5;
-        ctx.globalAlpha = 0.3;
-        for (let x = 0; x < WIDTH; x += 20) {
+        ctx.globalAlpha = 0.25;
+        for (let x = 0; x < WIDTH; x += 25) {
             ctx.beginPath();
             ctx.moveTo(x, 0);
             ctx.lineTo(x, HEIGHT);
             ctx.stroke();
         }
-        for (let y = 0; y < HEIGHT; y += 20) {
+        for (let y = 0; y < HEIGHT; y += 25) {
             ctx.beginPath();
             ctx.moveTo(0, y);
             ctx.lineTo(WIDTH, y);
@@ -223,8 +245,8 @@
 
         // Border with level color
         ctx.strokeStyle = LEVELS[currentLevel].color;
-        ctx.lineWidth = 3;
-        ctx.strokeRect(2, 2, WIDTH - 4, HEIGHT - 4);
+        ctx.lineWidth = 4;
+        ctx.strokeRect(3, 3, WIDTH - 6, HEIGHT - 6);
 
         // Draw trails
         drawTrail(player1);
@@ -234,53 +256,79 @@
         drawBike(player1);
         drawBike(player2);
 
-        // Countdown
+        // Countdown overlay
         if (countdown > 0) {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
             ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
             ctx.fillStyle = COLORS.text;
-            ctx.font = 'bold 72px Orbitron, monospace';
+            ctx.font = 'bold 80px Orbitron, sans-serif';
             ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
             ctx.shadowColor = COLORS.player1Glow;
-            ctx.shadowBlur = 30;
+            ctx.shadowBlur = 40;
             ctx.fillText(countdown, WIDTH / 2, HEIGHT / 2);
             ctx.shadowBlur = 0;
         }
 
-        // Level indicator
-        ctx.font = 'bold 12px Orbitron, monospace';
+        // HUD on canvas
+        ctx.font = 'bold 14px Orbitron, sans-serif';
         ctx.textAlign = 'left';
         ctx.fillStyle = LEVELS[currentLevel].color;
-        ctx.fillText(`${LEVELS[currentLevel].name.toUpperCase()}`, 10, 20);
+        ctx.fillText(LEVELS[currentLevel].name.toUpperCase(), 15, 25);
 
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#666';
-        ctx.fillText(`Скорость: ${LEVELS[currentLevel].speed}`, WIDTH / 2, 20);
+        if (fadeTrailEnabled) {
+            ctx.fillStyle = '#FF6B00';
+            ctx.fillText('FADE ON', 15, 45);
+        }
 
         ctx.textAlign = 'right';
-        ctx.fillStyle = COLORS.player1;
-        ctx.fillText(`CYAN: ${p1Score}`, WIDTH / 2 - 60, HEIGHT - 10);
-        ctx.fillStyle = COLORS.player2;
-        ctx.fillText(`ORANGE: ${p2Score}`, WIDTH - 10, HEIGHT - 10);
+        ctx.fillStyle = '#666';
+        ctx.font = '12px Inter, sans-serif';
+        ctx.fillText(`Скорость: ${LEVELS[currentLevel].speed}`, WIDTH - 15, 25);
     }
 
     function drawTrail(player) {
         if (player.trail.length < 2) return;
 
-        ctx.beginPath();
-        ctx.strokeStyle = player.trailColor;
-        ctx.lineWidth = 3;
+        // Draw trail segments with individual alpha
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.shadowColor = player.glow;
-        ctx.shadowBlur = 8;
 
-        ctx.moveTo(player.trail[0].x, player.trail[0].y);
         for (let i = 1; i < player.trail.length; i++) {
-            ctx.lineTo(player.trail[i].x, player.trail[i].y);
+            const prev = player.trail[i - 1];
+            const curr = player.trail[i];
+
+            const alpha = fadeTrailEnabled ? curr.alpha : 1;
+            if (alpha <= 0) continue;
+
+            ctx.beginPath();
+            ctx.strokeStyle = player.trailColor;
+            ctx.lineWidth = 4 * alpha;
+            ctx.globalAlpha = alpha;
+            ctx.shadowColor = player.glow;
+            ctx.shadowBlur = 10 * alpha;
+
+            ctx.moveTo(prev.x, prev.y);
+            ctx.lineTo(curr.x, curr.y);
+            ctx.stroke();
         }
-        ctx.lineTo(player.x, player.y);
-        ctx.stroke();
+
+        // Connect to current position
+        if (player.trail.length > 0 && player.alive) {
+            const last = player.trail[player.trail.length - 1];
+            ctx.beginPath();
+            ctx.strokeStyle = player.trailColor;
+            ctx.lineWidth = 4;
+            ctx.globalAlpha = 1;
+            ctx.shadowColor = player.glow;
+            ctx.shadowBlur = 10;
+            ctx.moveTo(last.x, last.y);
+            ctx.lineTo(player.x, player.y);
+            ctx.stroke();
+        }
+
+        ctx.globalAlpha = 1;
         ctx.shadowBlur = 0;
     }
 
@@ -289,9 +337,10 @@
             // Explosion effect
             ctx.fillStyle = COLORS.explosion;
             ctx.shadowColor = COLORS.explosion;
-            ctx.shadowBlur = 30;
+            ctx.shadowBlur = 35;
             ctx.beginPath();
-            ctx.arc(player.x, player.y, 12 + Math.sin(frameCount * 0.5) * 4, 0, Math.PI * 2);
+            const explosionSize = 15 + Math.sin(frameCount * 0.4) * 5;
+            ctx.arc(player.x, player.y, explosionSize, 0, Math.PI * 2);
             ctx.fill();
             ctx.shadowBlur = 0;
             return;
@@ -303,33 +352,33 @@
         ctx.rotate(angle);
 
         ctx.shadowColor = player.glow;
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 20;
         ctx.fillStyle = player.color;
 
-        // Simple bike shape
+        // Bike shape - sleek light cycle
         ctx.beginPath();
-        ctx.moveTo(10, 0);
-        ctx.lineTo(3, -5);
-        ctx.lineTo(-8, -4);
-        ctx.lineTo(-10, 0);
-        ctx.lineTo(-8, 4);
-        ctx.lineTo(3, 5);
+        ctx.moveTo(12, 0);    // Nose
+        ctx.lineTo(5, -6);    // Top front
+        ctx.lineTo(-8, -5);   // Top back
+        ctx.lineTo(-12, 0);   // Tail
+        ctx.lineTo(-8, 5);    // Bottom back
+        ctx.lineTo(5, 6);     // Bottom front
         ctx.closePath();
         ctx.fill();
 
         // Windshield
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
         ctx.beginPath();
-        ctx.moveTo(8, 0);
-        ctx.lineTo(4, -3);
-        ctx.lineTo(4, 3);
+        ctx.moveTo(10, 0);
+        ctx.lineTo(5, -4);
+        ctx.lineTo(5, 4);
         ctx.closePath();
         ctx.fill();
 
         // Engine glow
         ctx.fillStyle = '#FFF';
         ctx.beginPath();
-        ctx.arc(-8, 0, 2, 0, Math.PI * 2);
+        ctx.arc(-10, 0, 3, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.shadowBlur = 0;
@@ -347,26 +396,30 @@
             ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
             ctx.fillRect(0, 0, WIDTH, HEIGHT);
             ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
 
             if (winner === 'НИЧЬЯ') {
                 ctx.fillStyle = '#FFF';
-                ctx.font = 'bold 42px Orbitron, monospace';
-                ctx.fillText('НИЧЬЯ', WIDTH / 2, HEIGHT / 2 - 20);
+                ctx.font = 'bold 48px Orbitron, sans-serif';
+                ctx.fillText('НИЧЬЯ!', WIDTH / 2, HEIGHT / 2 - 30);
             } else {
                 const winColor = winner === 'CYAN' ? COLORS.player1 : COLORS.player2;
                 ctx.fillStyle = winColor;
                 ctx.shadowColor = winColor;
-                ctx.shadowBlur = 20;
-                ctx.font = 'bold 42px Orbitron, monospace';
-                ctx.fillText(winner + ' WINS!', WIDTH / 2, HEIGHT / 2 - 20);
+                ctx.shadowBlur = 30;
+                ctx.font = 'bold 50px Orbitron, sans-serif';
+                ctx.fillText(winner + ' WINS!', WIDTH / 2, HEIGHT / 2 - 30);
                 ctx.shadowBlur = 0;
             }
 
             ctx.fillStyle = '#888';
+            ctx.font = '16px Inter, sans-serif';
+            ctx.fillText('Нажми "Старт" для новой игры', WIDTH / 2, HEIGHT / 2 + 30);
+
+            ctx.fillStyle = '#666';
             ctx.font = '14px Inter, sans-serif';
-            ctx.fillText('← / → для смены уровня', WIDTH / 2, HEIGHT / 2 + 20);
-            ctx.fillText('Нажми "Старт" для новой игры', WIDTH / 2, HEIGHT / 2 + 45);
-        }, 400);
+            ctx.fillText(`CYAN: ${p1Score}  |  ORANGE: ${p2Score}`, WIDTH / 2, HEIGHT / 2 + 60);
+        }, 350);
 
         document.getElementById('tron-start')?.removeAttribute('disabled');
     }
@@ -387,7 +440,7 @@
                 document.getElementById('tron-start')?.setAttribute('disabled', 'true');
                 gameLoop = requestAnimationFrame(loop);
             }
-        }, 1000);
+        }, 800); // Faster countdown
     }
 
     function loop() {
@@ -404,10 +457,23 @@
         drawStartScreen();
     }
 
+    function toggleFade() {
+        fadeTrailEnabled = !fadeTrailEnabled;
+        updateUI();
+        if (!isRunning) drawStartScreen();
+    }
+
     function handleKeyDown(e) {
         // Check if TRON view is active
         const view = document.getElementById('view-tron');
         if (!view || view.classList.contains('hidden')) return;
+
+        // Toggle fade with F key
+        if (e.key.toLowerCase() === 'f') {
+            toggleFade();
+            e.preventDefault();
+            return;
+        }
 
         // Level selection when not running
         if (!isRunning) {
@@ -418,6 +484,12 @@
             }
             if (e.key === 'ArrowRight') {
                 changeLevel(1);
+                e.preventDefault();
+                return;
+            }
+            // Start with Space or Enter
+            if (e.key === ' ' || e.key === 'Enter') {
+                startGame();
                 e.preventDefault();
                 return;
             }
@@ -482,13 +554,13 @@
         ctx.strokeStyle = COLORS.grid;
         ctx.lineWidth = 0.5;
         ctx.globalAlpha = 0.2;
-        for (let x = 0; x < WIDTH; x += 20) {
+        for (let x = 0; x < WIDTH; x += 25) {
             ctx.beginPath();
             ctx.moveTo(x, 0);
             ctx.lineTo(x, HEIGHT);
             ctx.stroke();
         }
-        for (let y = 0; y < HEIGHT; y += 20) {
+        for (let y = 0; y < HEIGHT; y += 25) {
             ctx.beginPath();
             ctx.moveTo(0, y);
             ctx.lineTo(WIDTH, y);
@@ -496,33 +568,49 @@
         }
         ctx.globalAlpha = 1;
 
-        // Title
+        // Border
+        ctx.strokeStyle = LEVELS[currentLevel].color;
+        ctx.lineWidth = 4;
+        ctx.strokeRect(3, 3, WIDTH - 6, HEIGHT - 6);
+
         ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Title with glow
         ctx.fillStyle = COLORS.player1;
-        ctx.font = 'bold 48px Orbitron, monospace';
+        ctx.font = 'bold 56px Orbitron, sans-serif';
         ctx.shadowColor = COLORS.player1Glow;
-        ctx.shadowBlur = 30;
-        ctx.fillText('TRON', WIDTH / 2, HEIGHT / 2 - 80);
+        ctx.shadowBlur = 40;
+        ctx.fillText('TRON', WIDTH / 2, HEIGHT / 2 - 100);
         ctx.shadowBlur = 0;
 
-        ctx.font = '18px Orbitron, monospace';
+        ctx.font = '20px Orbitron, sans-serif';
         ctx.fillStyle = COLORS.player2;
-        ctx.fillText('LIGHT CYCLE ARENA', WIDTH / 2, HEIGHT / 2 - 50);
+        ctx.fillText('LIGHT CYCLE ARENA', WIDTH / 2, HEIGHT / 2 - 60);
 
         // Level selector
         ctx.fillStyle = LEVELS[currentLevel].color;
-        ctx.font = 'bold 22px Orbitron, monospace';
-        ctx.fillText(`◀ ${LEVELS[currentLevel].name.toUpperCase()} ▶`, WIDTH / 2, HEIGHT / 2);
+        ctx.font = 'bold 26px Orbitron, sans-serif';
+        ctx.fillText(`◀  ${LEVELS[currentLevel].name.toUpperCase()}  ▶`, WIDTH / 2, HEIGHT / 2);
 
-        ctx.font = '12px Orbitron, monospace';
+        ctx.font = '14px Orbitron, sans-serif';
         ctx.fillStyle = '#666';
-        ctx.fillText(`Скорость: ${LEVELS[currentLevel].speed}`, WIDTH / 2, HEIGHT / 2 + 22);
+        ctx.fillText(`Скорость: ${LEVELS[currentLevel].speed}`, WIDTH / 2, HEIGHT / 2 + 30);
+
+        // Fade status
+        if (fadeTrailEnabled) {
+            ctx.fillStyle = '#FF6B00';
+            ctx.font = 'bold 16px Orbitron, sans-serif';
+            ctx.fillText('🔥 ЗАТУХАНИЕ ВКЛЮЧЕНО', WIDTH / 2, HEIGHT / 2 + 60);
+        }
 
         // Controls
-        ctx.font = '13px Inter, sans-serif';
+        ctx.font = '14px Inter, sans-serif';
         ctx.fillStyle = '#888';
-        ctx.fillText('CYAN: W A S D  •  ORANGE: ← ↑ ↓ →', WIDTH / 2, HEIGHT / 2 + 55);
-        ctx.fillText('Нажми "Старт" или выбери уровень стрелками', WIDTH / 2, HEIGHT / 2 + 78);
+        ctx.fillText('CYAN: W A S D  •  ORANGE: ← ↑ ↓ →', WIDTH / 2, HEIGHT / 2 + 100);
+
+        ctx.fillStyle = '#666';
+        ctx.fillText('F — затухание  |  Space/Enter — старт  |  ← → — уровень', WIDTH / 2, HEIGHT / 2 + 125);
     }
 
     // Setup event listeners
@@ -530,10 +618,11 @@
     document.getElementById('tron-start')?.addEventListener('click', startGame);
     document.getElementById('tron-level-down')?.addEventListener('click', () => changeLevel(-1));
     document.getElementById('tron-level-up')?.addEventListener('click', () => changeLevel(1));
+    document.getElementById('tron-fade-btn')?.addEventListener('click', toggleFade);
 
     // Initial setup
     init();
     drawStartScreen();
 
-    console.log('[TRON] Light Cycle Arena v2 - Slower & Easier');
+    console.log('[TRON] Arena v3 - Now with Fading Trails!');
 })();

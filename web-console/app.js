@@ -510,6 +510,9 @@
         }
     };
 
+    // Export Intro to window for restart functionality
+    window.Intro = Intro;
+
     // ===========================
     // VIEW TRANSITIONS
     // ===========================
@@ -554,6 +557,35 @@
     }
 
     async function showView(viewName, withTransition = true) {
+        // Special case: "start" returns to intro and restarts it
+        if (viewName === 'start') {
+            const intro = document.getElementById('intro-screen');
+            const app = document.getElementById('app-layout');
+            const landing = document.getElementById('landing-page');
+
+            // Reset intro screen visibility
+            if (intro) {
+                intro.style.display = 'flex';
+                intro.classList.remove('fade-out', 'hidden');
+                // Reset all stages
+                const hackingStage = document.getElementById('intro-hacking');
+                const eyesStage = document.getElementById('intro-eyes');
+                const helloStage = document.getElementById('intro-hello');
+                if (hackingStage) hackingStage.classList.remove('hidden');
+                if (eyesStage) eyesStage.classList.add('hidden');
+                if (helloStage) helloStage.classList.add('hidden');
+            }
+            if (app) app.classList.add('hidden');
+            if (landing) landing.classList.add('hidden');
+
+            // Run the intro sequence
+            if (window.Intro) {
+                window.Intro.screen = document.getElementById('intro-screen');
+                window.Intro.runSequence();
+            }
+            return;
+        }
+
         state.currentView = viewName;
         if (withTransition) await Transitions.play();
 
