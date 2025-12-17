@@ -22,15 +22,18 @@ CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "")
 CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
 
 # Channels (configure these for your server)
-CHANNEL_ID_LOGS = int(os.getenv("CHANNEL_ID_LOGS", "0"))
-BIG_ACTION_ID = int(os.getenv("BIG_ACTION_ID", "0"))
+_logs_channel = os.getenv("CHANNEL_ID_LOGS", "0")
+CHANNEL_ID_LOGS = int(_logs_channel) if _logs_channel else 0
+_big_action = os.getenv("BIG_ACTION_ID", "0")
+BIG_ACTION_ID = int(_big_action) if _big_action else 0
 
 # Colors
 PSI_YELLOW = 0xffe989
 DARK_RED = 0xad1f1f
 
 # Owner ID (cannot be removed from admins)
-OWNER_ID = int(os.getenv("OWNER_ID", "777206368389038081"))
+_owner_id = os.getenv("OWNER_ID", "777206368389038081")
+OWNER_ID = int(_owner_id) if _owner_id else 777206368389038081
 
 # Bot setup
 intents = discord.Intents.default()
@@ -220,13 +223,37 @@ async def handle_status(request):
         'uptime': '99.9%'
     })
 
-# Stats
+# Stats (filtered by folder)
 @routes.get('/api/stats')
 async def handle_stats(request):
-    total_members = sum(g.member_count for g in bot.guilds) if bot.is_ready() else 0
+    folder_id = request.query.get('folderId')
+    
+    total_members = 0
+    active_servers = 0
+    
+    if folder_id and folder_id.isdigit():
+        # Get servers in this folder
+        cursor = await db_conn.execute(
+            "SELECT server_id FROM server_folders WHERE folder_id = ?", 
+            (int(folder_id),)
+        )
+        rows = await cursor.fetchall()
+        server_ids = set(r['server_id'] for r in rows)
+        
+        # Sum stats only for these servers
+        for guild in bot.guilds:
+            if guild.id in server_ids:
+                total_members += guild.member_count or 0
+                active_servers += 1
+    else:
+        # Global stats (no folder filter)
+        for guild in bot.guilds:
+            total_members += guild.member_count or 0
+            active_servers += 1
+    
     return json_response({
         'totalMembers': total_members,
-        'activeServers': len(bot.guilds) if bot.is_ready() else 0,
+        'activeServers': active_servers,
         'commandsToday': 0,
         'uptime': '99.9%'
     })
@@ -437,11 +464,35 @@ async def handle_folder_delete(request):
 @routes.get('/api/logs/messages')
 async def handle_logs_messages(request):
     limit = int(request.query.get('limit', 50))
+    folder_id = request.query.get('folderId')
     
-    cursor = await db_conn.execute("""
-        SELECT server_name, channel_name, username, user_id, content, created_at 
-        FROM message_logs ORDER BY created_at DESC LIMIT ?
-    """, (limit,))
+    if folder_id and folder_id.isdigit():
+        # Get server IDs for this folder
+        cursor = await db_conn.execute(
+            "SELECT server_id FROM server_folders WHERE folder_id = ?",
+            (int(folder_id),)
+        )
+        folder_rows = await cursor.fetchall()
+        server_ids = [r['server_id'] for r in folder_rows]
+        
+        if not server_ids:
+            return json_response({'success': True, 'logs': [], 'total': 0})
+        
+        # Build query with IN clause for server filtering
+        placeholders = ','.join('?' * len(server_ids))
+        cursor = await db_conn.execute(f"""
+            SELECT server_id, server_name, channel_name, username, user_id, content, created_at 
+            FROM message_logs 
+            WHERE server_id IN ({placeholders})
+            ORDER BY created_at DESC LIMIT ?
+        """, (*server_ids, limit))
+    else:
+        # No folder filter
+        cursor = await db_conn.execute("""
+            SELECT server_id, server_name, channel_name, username, user_id, content, created_at 
+            FROM message_logs ORDER BY created_at DESC LIMIT ?
+        """, (limit,))
+    
     rows = await cursor.fetchall()
     
     logs = [{
@@ -967,7 +1018,7 @@ async def cmd_clear(ctx, count: int = 10):
 
 # --- INFO COMMANDS ---
 
-@bot.command(name="help")
+@bot.command(name="bothelp")
 async def cmd_help(ctx):
     """Показать список команд"""
     embed = discord.Embed(

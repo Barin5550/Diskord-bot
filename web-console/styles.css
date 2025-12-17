@@ -11718,3 +11718,118 @@ body.overkill-mode .theme-btn.active {
         font-size: 1rem;
     }
 }
+
+/* ===========================
+   FOLDER FILTER INDICATOR
+   =========================== */
+.folder-filter-indicator {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+}
+
+.folder-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-3);
+    background: rgba(0, 212, 255, 0.15);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    color: var(--color-accent);
+}
+
+#clear-folder-filter {
+    padding: var(--space-1);
+    font-size: 0.75rem;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+#clear-folder-filter:hover {
+    opacity: 1;
+}
+
+/* ===========================
+   LOCKED OVERLAY (ZIP style)
+   =========================== */
+.locked-overlay {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.4;
+}
+
+.locked-overlay::before {
+    content: '🔒 Выбери папку';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
+    color: var(--color-accent);
+    font-size: 0.85rem;
+    font-weight: 600;
+    z-index: 10;
+    border-radius: var(--radius-md);
+}
+
+.locked-overlay.unlocked {
+    pointer-events: auto;
+    opacity: 1;
+}
+
+.locked-overlay.unlocked::before {
+    display: none;
+}
+
+/* ===========================
+   HEADER FOLDER CONTEXT
+   =========================== */
+.header-context {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    background: rgba(118, 255, 3, 0.15);
+    border: 1px solid rgba(118, 255, 3, 0.4);
+    border-radius: var(--radius-md);
+}
+
+.header-context .context-label {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.header-context .context-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #76ff03;
+}
+
+.header-context .btn-sm {
+    padding: var(--space-1) var(--space-2);
+    font-size: 0.75rem;
+    color: #ff5252;
+}
+
+/* Pending Server Assignment */
+.folder-card.pending-target {
+    border-color: #76ff03 !important;
+    box-shadow: 0 0 15px rgba(118, 255, 3, 0.3);
+    animation: pendingPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pendingPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 10px rgba(118, 255, 3, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(118, 255, 3, 0.6);
+    }
+}

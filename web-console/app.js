@@ -89,6 +89,17 @@
     window.ThemeManager = ThemeManager;
 
     // ===========================
+    // DISCORD OAUTH2 CONFIG
+    // ===========================
+    const DISCORD_CLIENT_ID = '1441381190371246261'; // Replace with your client ID
+    const REDIRECT_URI = encodeURIComponent(window.location.origin + '/folders');
+    const DISCORD_ADD_BOT_URL = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&permissions=8&response_type=code&redirect_uri=${REDIRECT_URI}&integration_type=0&scope=bot+identify+email+guilds`;
+    const DISCORD_LOGIN_URL = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&response_type=code&redirect_uri=${REDIRECT_URI}&scope=identify+email+guilds`;
+
+    // Pending server state (after OAuth redirect with guild_id)
+    window.pendingServer = null;
+
+    // ===========================
     // AUTH MODULE
     // ===========================
     const Auth = {
@@ -114,8 +125,48 @@
             return false;
         },
 
+        // Handle OAuth redirect with guild_id
+        handleOAuthRedirect() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const guildId = urlParams.get('guild_id');
+            const guildName = urlParams.get('guild_name') || `Server ${guildId}`;
+
+            if (guildId) {
+                // Server was added via OAuth - store as pending
+                window.pendingServer = {
+                    id: guildId,
+                    name: guildName
+                };
+
+                // Clean URL
+                window.history.replaceState({}, document.title, '/folders');
+
+                // Show pending banner
+                this.updatePendingBanner();
+                showToast(`✨ Сервер добавлен! Выбери папку для размещения.`, 'success');
+                return true;
+            }
+            return false;
+        },
+
+        updatePendingBanner() {
+            const banner = $('#pending-assignment-banner');
+            const text = $('#pending-server-text');
+
+            if (window.pendingServer && banner) {
+                banner.classList.remove('hidden');
+                if (text) text.textContent = `✨ Выбери папку для сервера "${window.pendingServer.name}"`;
+            } else if (banner) {
+                banner.classList.add('hidden');
+            }
+        },
+
         login() {
-            window.location.href = '/auth/discord';
+            window.location.href = DISCORD_LOGIN_URL;
+        },
+
+        addServer() {
+            window.location.href = DISCORD_ADD_BOT_URL;
         },
 
         async logout() {
@@ -732,8 +783,9 @@
         elements.landingPage.classList.add('hidden');
         elements.appLayout.classList.remove('hidden');
         elements.appLayout.classList.add('glitch-in');
-        showView('dashboard', false);
-        showToast('Welcome to the console!', 'success');
+        // Redirect to folders first so user selects a folder
+        showView('folders', false);
+        showToast('Выбери папку для начала работы!', 'success');
     }
 
     function handleLogout() {
@@ -1772,12 +1824,16 @@
     // ===========================
     const Dashboard = {
         loaded: false,
+        activeFolderId: null,  // Active folder filter
 
         async load() {
             try {
+                // Build URL with folder filter if set
+                const folderParam = this.activeFolderId ? `?folderId=${this.activeFolderId}` : '';
+
                 // Load stats and status in parallel
                 const [statsRes, statusRes] = await Promise.all([
-                    fetch(`${window.location.origin}/api/stats`),
+                    fetch(`${window.location.origin}/api/stats${folderParam}`),
                     fetch(`${window.location.origin}/api/status`)
                 ]);
 
@@ -1791,6 +1847,7 @@
                 const statusEl = $('#dash-status');
                 const uptimeEl = $('#dash-uptime');
                 const statusIconEl = $('#dash-status-icon');
+                const folderIndicator = $('#dash-folder-indicator');
 
                 if (usersEl) usersEl.textContent = this.formatNumber(stats.totalMembers || 0);
                 if (serversEl) serversEl.textContent = stats.activeServers || 0;
@@ -1811,8 +1868,15 @@
                         : 'dash-stat-icon';
                 }
 
+                // Show folder indicator if filtering
+                if (folderIndicator) {
+                    folderIndicator.textContent = this.activeFolderId
+                        ? `📁 Папка #${this.activeFolderId}`
+                        : '📁 Все серверы';
+                }
+
                 this.loaded = true;
-                console.log('[Dashboard] Stats loaded:', stats, status);
+                console.log('[Dashboard] Stats loaded:', stats, status, 'FolderId:', this.activeFolderId);
             } catch (error) {
                 console.error('[Dashboard] Failed to load stats:', error);
                 // Show error state
@@ -1821,12 +1885,25 @@
             }
         },
 
+        setActiveFolder(folderId) {
+            this.activeFolderId = folderId;
+            this.load();
+        },
+
+        clearFolderFilter() {
+            this.activeFolderId = null;
+            this.load();
+        },
+
         formatNumber(num) {
             if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
             if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
             return num.toString();
         }
     };
+
+    // Export Dashboard to window for global access
+    window.Dashboard = Dashboard;
 
     // ===========================
     // MEME API
@@ -2661,7 +2738,7 @@
             }
 
             grid.innerHTML = this.folders.map(folder => `
-                <div class="folder-card" data-folder-id="${folder.id}" style="--folder-color: ${folder.color}">
+                <div class="folder-card${window.pendingServer ? ' pending-target' : ''}" data-folder-id="${folder.id}" style="--folder-color: ${folder.color}">
                     <div class="folder-card-icon">📁</div>
                     <div class="folder-card-name">${folder.name}</div>
                     <div class="folder-card-count">ID: ${folder.id}</div>
@@ -2669,11 +2746,45 @@
             `).join('');
 
             grid.querySelectorAll('.folder-card').forEach(card => {
-                card.addEventListener('click', () => {
+                card.addEventListener('click', async () => {
                     const folderId = parseInt(card.dataset.folderId);
-                    this.openFolder(folderId);
+
+                    // Check if there's a pending server to assign
+                    if (window.pendingServer) {
+                        await this.assignPendingServer(folderId);
+                    } else {
+                        this.openFolder(folderId);
+                    }
                 });
             });
+        },
+
+        // Assign pending server to folder (after OAuth redirect)
+        async assignPendingServer(folderId) {
+            if (!window.pendingServer) return;
+
+            const folder = this.folders.find(f => f.id === folderId);
+            if (!folder) return;
+
+            try {
+                await FoldersAPI.addServerToFolder(
+                    folderId,
+                    window.pendingServer.id,
+                    window.pendingServer.name
+                );
+
+                showToast(`✅ Сервер "${window.pendingServer.name}" добавлен в "${folder.name}"!`, 'success');
+
+                // Clear pending server
+                window.pendingServer = null;
+                Auth.updatePendingBanner();
+
+                // Open the folder
+                this.openFolder(folderId);
+            } catch (e) {
+                console.error('Failed to assign server:', e);
+                showToast('Ошибка добавления сервера', 'error');
+            }
         },
 
         async openFolder(folderId) {
@@ -2681,15 +2792,31 @@
             const folder = this.folders.find(f => f.id === folderId);
             if (!folder) return;
 
+            // Enter folder context (unlock Main section)
+            this.enterContext(folderId, folder.name);
+
             $('#folder-name').textContent = folder.name;
 
             try {
                 const servers = await FoldersAPI.getServersInFolder(folderId);
                 $('#folder-server-count').textContent = `${servers.length} сервер(ов)`;
                 this.renderServers(servers);
+
+                // Show folder details
                 showView('folder-details');
             } catch (e) {
                 console.error('Failed to load folder:', e);
+            }
+        },
+
+        // Go to dashboard with current folder filter
+        goToDashboard() {
+            if (this.currentFolderId && window.Dashboard) {
+                window.Dashboard.activeFolderId = this.currentFolderId;
+            }
+            showView('dashboard');
+            if (window.Dashboard) {
+                window.Dashboard.load();
             }
         },
 
@@ -2767,7 +2894,70 @@
             await FoldersAPI.deleteFolder(this.currentFolderId);
             showView('folders');
             this.loadFolders();
+        },
+
+        // Enter folder context - unlock Main section
+        enterContext(folderId, folderName) {
+            this.currentFolderId = folderId;
+
+            // Unlock navigation
+            const lockedSection = $('#nav-locked-section');
+            if (lockedSection) {
+                lockedSection.classList.add('unlocked');
+            }
+
+            // Show header context
+            const headerContext = $('#header-folder-context');
+            const folderNameEl = $('#active-folder-name');
+            if (headerContext) {
+                headerContext.classList.remove('hidden');
+            }
+            if (folderNameEl) {
+                folderNameEl.textContent = folderName;
+            }
+
+            // Set Dashboard filter
+            if (window.Dashboard) {
+                window.Dashboard.activeFolderId = folderId;
+            }
+
+            showToast(`📁 Контекст: ${folderName}`, 'success');
+        },
+
+        // Exit folder context - lock Main section
+        exitContext() {
+            this.currentFolderId = null;
+
+            // Lock navigation
+            const lockedSection = $('#nav-locked-section');
+            if (lockedSection) {
+                lockedSection.classList.remove('unlocked');
+            }
+
+            // Hide header context
+            const headerContext = $('#header-folder-context');
+            if (headerContext) {
+                headerContext.classList.add('hidden');
+            }
+
+            // Clear Dashboard filter
+            if (window.Dashboard) {
+                window.Dashboard.activeFolderId = null;
+            }
+
+            showView('folders');
+            showToast('📁 Контекст сброшен', 'info');
         }
+    };
+
+    // Export to window
+    window.FoldersUI = FoldersUI;
+    window.exitFolderContext = () => FoldersUI.exitContext();
+    window.cancelPendingServer = () => {
+        window.pendingServer = null;
+        Auth.updatePendingBanner();
+        showToast('Назначение отменено', 'info');
+        FoldersUI.loadFolders(); // Refresh to remove pending-target class
     };
 
     // ===========================

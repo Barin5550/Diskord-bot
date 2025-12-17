@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Bot Console</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Neuton:wght@400;700&family=Orbitron:wght@500;600;700&family=NATS:wght@400&display=swap" rel="stylesheet">
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.561.0"
+  }
+}
+</script>
+</head>
+<body>
+
+    <!-- ==========================================
+         VIEW 1: LANDING / LOGIN
+         (Shown if not authenticated)
+    ========================================== -->
+    <div id="view-landing" class="view active">
+        <div class="layout-container white-bg">
+            <!-- Header/Nav -->
+            <div class="top-bar-dark-border"></div>
+            <img class="logo-img" src="https://placehold.co/84x101" alt="Logo" />
+            <div class="header-text-dark">Akhmet Amanzhan<br/>Barinov Nickolay</div>
+            
+            <!-- Auth Button -->
+            <!-- TODO: Replace with real Discord OAuth2 URL -->
+            <a href="javascript:void(0)" onclick="loginWithDiscord()" style="text-decoration: none;">
+                <div class="auth-btn-bg"></div>
+                <div class="auth-btn-text">
+                    <span class="auth-main">Sign in<br/></span>
+                    <span class="auth-sub">with discord</span>
+                </div>
+            </a>
+
+            <!-- Main Content -->
+            <div class="hero-title">The best administration bot<br/>on Discord</div>
+            <div class="hero-subtitle">The only innovative cross-server administration bot</div>
+            
+            <!-- Call to Action -->
+            <div class="cta-bg"></div>
+            <div class="cta-text">Control your server</div>
+
+            <!-- Decorative Image -->
+            <img class="deco-img" src="https://placehold.co/1440x1440" />
+        </div>
+    </div>
+
+    <!-- ==========================================
+         VIEW 2: DASHBOARD
+         (Sidebar + Content)
+    ========================================== -->
+    <div id="app-wrapper" class="hidden">
+        <div class="layout-container dark-bg">
+            
+            <!-- Top Bar -->
+            <div class="top-bar-dark-border"></div>
+            <img class="logo-img-small" src="https://placehold.co/84x101" />
+            <div class="header-text-light">Akhmet Amanzhan<br/>Barinov Nikolai</div>
+            
+            <!-- User Profile -->
+            <div class="user-name" id="display-username">User</div>
+            <div class="user-avatar-container">
+                <img id="display-avatar" src="https://placehold.co/60x60" style="width:100%; height:100%">
+            </div>
+            <div class="nav-arrow">></div>
+
+            <!-- Sidebar Navigation -->
+            <div class="sidebar-line"></div>
+            
+            <!-- Nav Item: Dashboard -->
+            <a href="javascript:void(0)" onclick="switchTab('dashboard')">
+                <div class="nav-label dashboard-label">Dashboard</div>
+                <img class="nav-icon dashboard-icon" src="https://placehold.co/20x20" alt="icon">
+            </a>
+
+            <!-- Nav Item: Moderation -->
+            <a href="javascript:void(0)" onclick="switchTab('moderation')">
+                <div class="nav-label moderation-label">Moderation</div>
+                <img class="nav-icon moderation-icon" src="https://placehold.co/20x20" alt="icon">
+            </a>
+
+            <!-- Nav Item: Logs -->
+            <a href="javascript:void(0)" onclick="switchTab('logs')">
+                <div class="nav-label logs-label">Logs</div>
+                <img class="nav-icon logs-icon" src="https://placehold.co/20x20" alt="icon">
+            </a>
+
+            <!-- Nav Item: Help -->
+            <a href="javascript:void(0)" onclick="switchTab('help')">
+                <div class="nav-label help-label">Help</div>
+                <img class="nav-icon help-icon" src="https://placehold.co/20x20" alt="icon">
+            </a>
+
+            <!-- Nav Item: Server Folders (Added Requirement) -->
+            <a href="javascript:void(0)" onclick="switchTab('folders')">
+                <div class="nav-label folders-label">Server Folders</div>
+            </a>
+
+            <!-- Horizontal Separators -->
+            <div class="sep sep-1"></div>
+            <div class="sep sep-2"></div>
+            <div class="sep sep-3"></div>
+            <div class="sep sep-4"></div>
+
+            <!-- =======================
+                 DYNAMIC CONTENT AREA
+            ======================= -->
+            
+            <!-- SUB-VIEW: DASHBOARD (Bot Settings) -->
+            <div id="view-dashboard-content">
+                <!-- Generic Bot Settings Panel -->
+                <div class="panel-bg"></div>
+                <div class="panel-title">BOT SETTINGS</div>
+                
+                <div class="field-label f1">Command prefix</div>
+                <div class="field-input i1"></div>
+                <div class="field-value v1">C7/</div>
+
+                <!-- Support Bubble -->
+                <div class="support-bubble"></div>
+                <div class="support-text">Need help?</div>
+                <div class="support-q">?</div>
+            </div>
+
+            <!-- SUB-VIEW: SERVER INFO (Selected Server) -->
+            <div id="view-server-content" class="hidden">
+                <div class="panel-bg"></div>
+                <div class="panel-title">SERVER INFO</div>
+
+                <!-- Stats -->
+                <div class="info-label l1">Members:</div>
+                <div class="info-value v1" id="srv-members">0</div>
+
+                <div class="info-label l2">Text channels: </div>
+                <div class="info-value v2" id="srv-text">0</div>
+
+                <div class="info-label l3">Voice channels: </div>
+                <div class="info-value v3" id="srv-voice">0</div>
+
+                <div class="info-label l4">Roles</div>
+                <div class="info-value v4" id="srv-roles">0</div>
+
+                <!-- Copy ID -->
+                <div class="copy-btn" onclick="copyServerId()">
+                    <div class="copy-icon-1"></div>
+                    <div class="copy-icon-2"></div>
+                    <div class="copy-text">Copy Server ID</div>
+                </div>
+
+                <!-- Bottom Panel -->
+                <div class="panel-bg-bottom"></div>
+                <div class="panel-title-bottom">BOT SETTINGS</div>
+
+                <div class="field-label f2">Name:</div>
+                <div class="field-value v2-val" id="srv-name">Server Name</div>
+                <div class="field-input i2"></div>
+
+                <div class="field-label f3">Command prefix</div>
+                <div class="field-input i3"></div>
+                <div class="field-value v3-val">C7/</div>
+            </div>
+
+            <!-- SUB-VIEW: FOLDERS (Grid) -->
+            <div id="view-folders-content" class="hidden">
+                <div class="folders-title">SERVER FOLDERS:</div>
+                <div id="new-server-banner" class="hidden" style="position:absolute; left:532px; top:130px; color:#4ade80; font-family:'Neuton'; font-size:20px;">
+                    Select a folder to assign <span id="pending-server-name">New Server</span>
+                </div>
+                
+                <!-- Folders Container -->
+                <div class="folders-container" id="folders-grid">
+                    <!-- Folders injected via JS -->
+                </div>
+
+                <!-- Add Folder (Simulated as a floating button for now) -->
+                <button onclick="createNewFolder()" style="position:absolute; top:230px; left:532px; background:#FFE989; border:none; padding:10px 20px; font-family:'Neuton'; cursor:pointer; font-size:18px;">+ New Folder</button>
+            </div>
+
+             <!-- SUB-VIEW: FOLDER CONTENTS -->
+             <div id="view-folder-details" class="hidden">
+                <div class="folders-title">FOLDER CONTENTS:</div>
+                <button onclick="switchTab('folders')" style="position:absolute; top:230px; left:44px; background:transparent; border:1px solid #FFE989; color:#FFE989; padding:5px 15px; cursor:pointer;">&lt; Back</button>
+                
+                <div class="folders-container" id="folder-servers-grid">
+                    <!-- Servers inside folder -->
+                </div>
+
+                <!-- Add Server Button -->
+                <!-- TODO: Link to Discord OAuth2 -->
+                <button onclick="addServerOAuth()" style="position:absolute; top:230px; left:532px; background:#FFE989; border:none; padding:10px 20px; font-family:'Neuton'; cursor:pointer; font-size:18px;">+ Add Server (OAuth)</button>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

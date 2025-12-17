@@ -162,6 +162,15 @@
                         class="logo-text neon-yellow">BotConsole</span>
                 </div>
             </div>
+
+            <!-- Active Folder Context Indicator -->
+            <div id="header-folder-context" class="header-context hidden">
+                <span class="context-label">📁 Папка:</span>
+                <span id="active-folder-name" class="context-value">Не выбрана</span>
+                <button id="btn-exit-folder" class="btn btn-ghost btn-sm"
+                    onclick="window.exitFolderContext && window.exitFolderContext()">✕ Выйти</button>
+            </div>
+
             <div class="header-right">
                 <button id="btn-settings" class="btn btn-ghost btn-icon" title="Settings">⚙</button>
                 <div id="user-menu" class="user-menu">
@@ -178,39 +187,45 @@
 
         <div class="main-container hex-bg">
             <aside id="sidebar" class="sidebar data-stream">
+                <!-- Server Context Section -->
                 <div class="sidebar-section">
-                    <div class="sidebar-title terminal-text">Main</div>
-                    <button class="nav-item" data-view="start"><span class="nav-icon">🏠</span>
-                        <span>Начало</span></button>
-                    <button class="nav-item active" data-view="dashboard"><span class="nav-icon">▣</span>
-                        <span data-i18n="nav.dashboard">Dashboard</span></button>
-                    <button class="nav-item" data-view="analytics"><span class="nav-icon">📊</span>
-                        <span data-i18n="nav.analytics">Аналитика</span></button>
-                    <button class="nav-item" data-view="moderation"><span class="nav-icon">🛡️</span>
-                        <span data-i18n="nav.moderation">Модерация</span></button>
-                    <button class="nav-item" data-view="logs-messages"><span class="nav-icon">💬</span>
-                        <span data-i18n="logs.messages">Логи сообщений</span></button>
-                    <button class="nav-item" data-view="logs-actions"><span class="nav-icon">⚡</span>
-                        <span data-i18n="logs.actions">Логи действий</span></button>
-                    <button class="nav-item" data-view="folders"><span class="nav-icon">🗂️</span>
-                        <span data-i18n="nav.folders">Server Folders</span></button>
+                    <div class="sidebar-title terminal-text">Server Context</div>
+                    <button class="nav-item" data-view="folders"><span class="nav-icon">📁</span>
+                        <span>Server Folders</span></button>
                 </div>
+
+                <!-- Main Section (locked until folder selected) -->
+                <div id="nav-locked-section" class="sidebar-section locked-overlay">
+                    <div class="sidebar-title">Main</div>
+                    <button class="nav-item" data-view="dashboard"><span class="nav-icon">▣</span>
+                        <span>Dashboard</span></button>
+                    <button class="nav-item" data-view="logs-messages"><span class="nav-icon">💬</span>
+                        <span>Живые Логи</span></button>
+                    <button class="nav-item" data-view="moderation"><span class="nav-icon">🛡️</span>
+                        <span>Модерация</span></button>
+                </div>
+
+                <!-- Games Section -->
                 <div class="sidebar-section">
                     <div class="sidebar-title">🎮 Games</div>
-                    <button class="nav-item" data-view="tetris"><span class="nav-icon">🧱</span> <span
-                            data-i18n="nav.tetris">Tetris</span></button>
+                    <button class="nav-item" data-view="tetris"><span class="nav-icon">🧱</span>
+                        <span>Tetris</span></button>
                     <button class="nav-item" data-view="snake"><span class="nav-icon">🐍</span> Змейка</button>
                     <button class="nav-item" data-view="tron"><span class="nav-icon">⚡</span> TRON Arena</button>
                 </div>
+
+                <!-- Memes Section -->
                 <div class="sidebar-section">
                     <div class="sidebar-title">😂 Memes & Chats</div>
-                    <button class="nav-item" data-view="memes"><span class="nav-icon">🎭</span> <span
-                            data-i18n="nav.memes">Мемы</span></button>
-                    <button class="nav-item" data-view="meme-of-day"><span class="nav-icon">⭐</span> <span
-                            data-i18n="nav.memeOfDay">Мем дня</span></button>
-                    <button class="nav-item" data-view="chat-rooms"><span class="nav-icon">💬</span> <span
-                            data-i18n="nav.chat">Чаты</span></button>
+                    <button class="nav-item" data-view="memes"><span class="nav-icon">🎭</span>
+                        <span>Мемы</span></button>
+                    <button class="nav-item" data-view="meme-of-day"><span class="nav-icon">⭐</span>
+                        <span>Мем дня</span></button>
+                    <button class="nav-item" data-view="chat-rooms"><span class="nav-icon">💬</span>
+                        <span>Чаты</span></button>
                 </div>
+
+                <!-- Extras Section -->
                 <div class="sidebar-section">
                     <div class="sidebar-title">🔧 Полезное</div>
                     <button class="nav-item" data-view="engineer-tutorial"><span class="nav-icon">👷</span> Курс
@@ -218,6 +233,8 @@
                     <button class="nav-item" data-view="memorial"><span class="nav-icon">🪦</span> Кладбище
                         проектов</button>
                 </div>
+
+                <!-- Support Section -->
                 <div class="sidebar-section">
                     <div class="sidebar-title">Support</div>
                     <button class="nav-item" data-view="help-faq"><span class="nav-icon">❓</span> FAQ</button>
@@ -234,6 +251,12 @@
                     <div class="view-header">
                         <h1 class="view-title">📊 Dashboard</h1>
                         <p class="view-subtitle">Мониторинг бота в реальном времени</p>
+                        <div class="folder-filter-indicator">
+                            <span id="dash-folder-indicator" class="folder-badge">📁 Все серверы</span>
+                            <button id="clear-folder-filter" class="btn btn-ghost btn-sm"
+                                onclick="window.Dashboard && window.Dashboard.clearFolderFilter()"
+                                title="Сбросить фильтр">✕</button>
+                        </div>
                     </div>
 
                     <!-- Stats Row -->
@@ -1075,9 +1098,24 @@
                     </div>
 
                     <div class="folders-container">
+                        <!-- Pending Server Assignment Banner -->
+                        <div id="pending-assignment-banner" class="card hidden"
+                            style="border-color: #76ff03; background: rgba(118, 255, 3, 0.1); margin-bottom: 20px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span id="pending-server-text" style="color: #76ff03; font-weight: bold;">✨ Выбери папку
+                                    для сервера</span>
+                                <button id="cancel-assignment-btn" class="btn btn-ghost btn-sm"
+                                    onclick="window.cancelPendingServer && window.cancelPendingServer()">Отменить</button>
+                            </div>
+                        </div>
+
                         <div class="folders-actions">
                             <button id="create-folder-btn" class="btn btn-primary">
                                 <span>➕</span> Создать папку
+                            </button>
+                            <button id="add-server-oauth-btn" class="btn btn-secondary"
+                                onclick="window.Auth && window.Auth.addServer()">
+                                <span>🤖</span> Добавить бота на сервер
                             </button>
                         </div>
 
@@ -1102,6 +1140,10 @@
 
                     <div class="folder-details-container">
                         <div class="folder-actions">
+                            <button id="go-dashboard-btn" class="btn btn-accent"
+                                onclick="window.FoldersUI && window.FoldersUI.goToDashboard()">
+                                📊 Открыть Dashboard
+                            </button>
                             <button id="add-server-btn" class="btn btn-primary">
                                 <span>➕</span> Добавить сервер
                             </button>
@@ -3169,6 +3211,7 @@ random.shuffle(my_list)            # Перемешать список</pre>
 
     <script src="i18n.js"></script>
     <script src="app.js"></script>
+    <script src="zip_integration.js"></script>
     <script src="tetris.js"></script>
     <script src="snake.js"></script>
     <script src="tron.js"></script>
